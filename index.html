@@ -2,8 +2,16 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>チームバレー帳</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="theme-color" content="#16213A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="バレー帳">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
@@ -32,10 +40,11 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
-header.top{padding:18px 16px 10px;display:flex;align-items:baseline;justify-content:space-between;gap:12px;max-width:640px;margin:0 auto}
+header.top{padding:calc(18px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));display:flex;align-items:baseline;justify-content:space-between;gap:12px;max-width:640px;margin:0 auto}
 header.top h1{font-family:var(--display);font-size:22px;margin:0;letter-spacing:.02em}
 header.top .who{font-size:12px;color:var(--muted);text-align:right}
-main{max-width:640px;margin:0 auto;padding:0 16px 104px}
+main{max-width:640px;margin:0 auto;padding:0 calc(16px + env(safe-area-inset-right)) calc(104px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+textarea{width:100%;min-height:90px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 11px;font:12px/1.5 ui-monospace,monospace}
 .view{display:flex;flex-direction:column;gap:14px}
 h2{font-family:var(--display);font-size:18px;margin:6px 0 0;text-wrap:balance}
 h3{font-size:15px;margin:0;font-weight:700}
@@ -489,15 +498,41 @@ function viewLineups(){
   if(D.canWrite) h+=`<button class="btn warn" data-del-l="${esc(l.id)}">このオーダー表を削除</button>`;
   return h;
 }
+const STANDALONE = !/claude|anthropic/.test(location.hostname) && location.protocol.startsWith("http");
+function exportJSON(){ return JSON.stringify({app:"team-volley-book",version:1,exported:new Date().toISOString(),roster:D.roster,events:D.events,lineups:D.lineups}); }
+function dataCard(){
+  return `<details class="card" id="xfer" ${S.xferOpen?"open":""}><summary style="cursor:pointer;font-weight:700">データの受け渡し</summary>
+  <p class="muted">名簿・オーダー・大会予定を1つのファイルにまとめて、別の端末やメンバーに渡せます。</p>
+  <div class="row"><button class="btn sub" data-export="file">ファイルに書き出す</button><button class="btn sub" data-export="copy">文字でコピー</button></div>
+  ${S.xferMsg?`<p class="muted" role="status">${esc(S.xferMsg)}</p>`:""}
+  ${D.canWrite?`<label class="f">ファイルから読み込む<input type="file" id="ximport" accept="application/json,.json,.txt"></label>
+  <label class="f">または、コピーした文字を貼り付けて読み込む<textarea id="xpaste" placeholder='{"app":"team-volley-book", ...}'></textarea></label>
+  <div class="row"><button class="btn" data-import="paste">貼り付けた内容を読み込む</button></div>
+  <p class="why">読み込むと、同じ選手・予定・オーダーは上書きされ、新しいものは追加されます。今のデータは消えません。</p>`:""}</details>`;
+}
+async function importData(text){
+  let obj; try{ obj=JSON.parse(text); }catch(e){ S.xferMsg="読み込めませんでした。ファイルの中身が正しくありません。"; return render(); }
+  if(!obj||obj.app!=="team-volley-book"){ S.xferMsg="チームバレー帳のデータではないようです。"; return render(); }
+  let n=0;
+  for(const col of ["roster","events","lineups"]){
+    for(const it of (Array.isArray(obj[col])?obj[col]:[])){
+      if(!it||typeof it!=="object") continue;
+      const {id,...body}=it; const safeId = typeof id==="string"&&/^[A-Za-z0-9_\-.~:@+]{1,100}$/.test(id)&&id!=="."&&id!==".." ? id : null;
+      if(D.mode!=="db"&&safeId){ const arr=D[col]; const i=arr.findIndex(x=>x.id===safeId); if(i>=0) arr[i]={id:safeId,...body}; else arr.push({id:safeId,...body}); LS.set("vb-"+col,arr); n++; }
+      else { const r=await save(col,safeId,body); if(r) n++; }
+    }
+  }
+  S.xferMsg=`${n}件を読み込みました。`; S.xferOpen=true; freshRender();
+}
 function posLabel(k){ const o=POS_OPTS.find(x=>x[0]===k); return o?o[1]:"未定"; }
 function viewTeam(){
   let h = `<div class="seg" role="group" aria-label="表示"><button data-teamsub="roster" aria-pressed="${S.teamSub==="roster"}">名簿</button><button data-teamsub="lineup" aria-pressed="${S.teamSub==="lineup"}">オーダー</button><button data-teamsub="events" aria-pressed="${S.teamSub==="events"}">大会予定</button></div>`;
   if(D.mode==="loading") return h+`<p class="muted">読み込み中…</p>`;
-  if(D.mode==="local") h += `<p class="note">このプレビューではデータはこの端末にだけ保存されます。共有したページではメンバー全員が同じ内容を見られます。</p>`;
+  if(D.mode==="local") h += `<p class="note">データはこの端末に保存されます。メンバーと同じ内容にするには、下の「データの受け渡し」でファイルを送って読み込んでもらいます。</p>`;
   if(D.note) h += `<p class="note">${esc(D.note)}</p>`;
   if(D.err) h += `<p class="err" role="alert">${esc(D.err)}</p>`;
   if(!D.canWrite) h += `<p class="note">閲覧のみです。編集はキャプテンが共有設定で「参加者」以上にした人ができます。</p>`;
-  if(S.teamSub==="lineup") return h+viewLineups();
+  if(S.teamSub==="lineup") return h+viewLineups()+dataCard();
   if(S.teamSub==="roster"){
     const list=[...D.roster].sort((a,b)=>(+a.num||999)-(+b.num||999));
     const reg=list.filter(p=>p.reg).length;
@@ -531,7 +566,7 @@ function viewTeam(){
       <div class="row"><button class="btn" type="submit">${e?"更新する":"追加する"}</button>${e?`<button class="btn sub" type="button" data-cancel="e">やめる</button><button class="btn warn" type="button" data-del-e="${esc(e.id)}">削除</button>`:""}</div></form>`;
     }
   }
-  return h;
+  return h+dataCard();
 }
 
 /* ---------- render & events ---------- */
@@ -549,7 +584,7 @@ function render(){
 }
 function freshRender(){ render.reset=true; render(); }
 document.addEventListener("click",e=>{
-  const t = e.target.closest("[data-tab],[data-tsub],[data-form],[data-pos],[data-skill],[data-target],[data-mine],[data-theme],[data-done],[data-ppl],[data-spin],[data-kiso],[data-teamsub],[data-edit-r],[data-edit-e],[data-cancel],[data-del-r],[data-del-e],[data-past],[data-men],[data-lu],[data-luset],[data-lupos],[data-assign],[data-unassign],[data-svmove],[data-copyset],[data-luback],[data-del-l],[data-regonly]");
+  const t = e.target.closest("[data-tab],[data-tsub],[data-form],[data-pos],[data-skill],[data-target],[data-mine],[data-theme],[data-done],[data-ppl],[data-spin],[data-kiso],[data-teamsub],[data-edit-r],[data-edit-e],[data-cancel],[data-del-r],[data-del-e],[data-past],[data-men],[data-lu],[data-luset],[data-lupos],[data-assign],[data-unassign],[data-svmove],[data-copyset],[data-luback],[data-del-l],[data-regonly],[data-export],[data-import]");
   if(!t) return;
   const d = t.dataset;
   if(d.done!==undefined){ S.done[d.done]=t.checked; return; }
@@ -582,6 +617,11 @@ document.addEventListener("click",e=>{
   else if(d.svmove){ const [i,dir]=d.svmove.split(":").map(Number); const sd=syncServe(setData(lu(),S.luSet)); const j=i+dir; if(j<0||j>=sd.serve.length) return; [sd.serve[i],sd.serve[j]]=[sd.serve[j],sd.serve[i]]; return writeSet(S.luSet,sd); }
   else if(d.copyset){ const prev=SETS[SETS.indexOf(S.luSet)-1]; return writeSet(S.luSet,setData(lu(),prev)); }
   else if(d.delL){ askDelete("lineups",d.delL,t); return; }
+  else if(d.export){ S.xferOpen=true; const txt=exportJSON();
+    if(d.export==="copy"){ (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{S.xferMsg="コピーしました。LINEなどに貼り付けて送れます。";render();}).catch(()=>{S.xferMsg="コピーできませんでした。";render();}); return; }
+    try{ const a=document.createElement("a"); const day=new Date().toISOString().slice(0,10); a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"})); a.download=`volley-book-${day}.json`; document.body.appendChild(a); a.click(); a.remove(); S.xferMsg=STANDALONE?"ファイルを書き出しました。":"この画面ではファイルを保存できない場合があります。うまくいかなければ「文字でコピー」を使ってください。"; }catch(err){ S.xferMsg="書き出せませんでした。「文字でコピー」を使ってください。"; }
+  }
+  else if(d.import){ const v=$("#xpaste").value.trim(); if(!v){ S.xferMsg="貼り付け欄が空です。"; S.xferOpen=true; } else { importData(v); return; } }
   render();
 });
 function askDelete(col,id,btn){
@@ -625,10 +665,13 @@ document.addEventListener("submit",async e=>{
     if(ok){ S.editE=null; freshRender(); }
   }
 });
+document.addEventListener("change",e=>{ if(e.target.id==="ximport"&&e.target.files[0]){ const f=e.target.files[0]; f.text().then(importData); } });
+document.addEventListener("toggle",e=>{ if(e.target.id==="xfer") S.xferOpen=e.target.open; },true);
 document.addEventListener("input",e=>{ if(e.target.closest("form")){ const er=e.target.closest("form").querySelector(".err"); if(er) er.textContent=""; } });
 document.addEventListener("keydown",e=>{ const g=e.target.closest&&e.target.closest("[data-pos],[data-target],[data-lupos]"); if(g&&g.tagName!=="BUTTON"&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); g.dispatchEvent(new MouseEvent("click",{bubbles:true})); }});
 render();
 initData();
+if(STANDALONE && "serviceWorker" in navigator){ window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
 </script>
 </body>
 </html>
