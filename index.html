@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>チームバレー帳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: phone-first single column, sticky bottom tab bar; court diagrams lead each view */
+  --bg:#F3F5F8; --surface:#FFFFFF; --ink:#16213A; --muted:#5D6880; --line:#DCE1EA;
+  --accent:#F2A900; --accent-ink:#5A3E00; --court:#E8EEF7; --atk:#D9481F; --def:#17806A; --set:#5F6673;
+  --atk-bg:#FCE7DF; --def-bg:#DDF2EC; --set-bg:#ECEEF1; --danger:#B42318;
+  --display:"Zen Maru Gothic","Zen Kaku Gothic New","Hiragino Sans",sans-serif;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1524; --surface:#18213A; --ink:#E9EDF5; --muted:#A3AEC4; --line:#2B3654;
+    --accent:#F5B82E; --accent-ink:#2A1C00; --court:#1E2A47; --atk:#FF7A52; --def:#3CC4A2; --set:#A1A8B5;
+    --atk-bg:#4A2216; --def-bg:#123C33; --set-bg:#2B3348; --danger:#FF8A7A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1524; --surface:#18213A; --ink:#E9EDF5; --muted:#A3AEC4; --line:#2B3654;
+  --accent:#F5B82E; --accent-ink:#2A1C00; --court:#1E2A47; --atk:#FF7A52; --def:#3CC4A2; --set:#A1A8B5;
+  --atk-bg:#4A2216; --def-bg:#123C33; --set-bg:#2B3348; --danger:#FF8A7A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+header.top{padding:18px 16px 10px;display:flex;align-items:baseline;justify-content:space-between;gap:12px;max-width:640px;margin:0 auto}
+header.top h1{font-family:var(--display);font-size:22px;margin:0;letter-spacing:.02em}
+header.top .who{font-size:12px;color:var(--muted);text-align:right}
+main{max-width:640px;margin:0 auto;padding:0 16px 104px}
+.view{display:flex;flex-direction:column;gap:14px}
+h2{font-family:var(--display);font-size:18px;margin:6px 0 0;text-wrap:balance}
+h3{font-size:15px;margin:0;font-weight:700}
+h4{font-size:14px;margin:0;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--court);border-radius:10px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;border-radius:8px;padding:8px 4px;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--surface);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.court svg{width:100%;height:auto;display:block}
+.court .pl,.court .tg{cursor:pointer}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;background:var(--c)}
+.role{border-left:4px solid var(--c);border-radius:0;padding:2px 0 2px 12px;display:flex;flex-direction:column;gap:6px}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;background:var(--tbg);color:var(--c);font-weight:700;white-space:nowrap}
+ul.clean,ol.clean{margin:0;padding-left:1.2em}
+ul.clean li,ol.clean li{margin:2px 0}
+.cue{background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:1px 8px;font-weight:700}
+.list-btn{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px}
+.list-btn small{color:var(--muted);font-size:12px}
+.arrow{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:8px}
+.sym-row{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:4px;background:var(--surface);text-align:left;width:100%}
+.sym-row b{font-size:14px}
+.sym-row .c{font-size:13px;color:var(--muted)}
+input[type=search],input[type=text],input[type=number],input[type=date],select{width:100%;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 11px;font:inherit;min-width:0}
+.back{border:0;background:none;color:var(--muted);padding:0;font-size:13px;align-self:flex-start}
+.slot{display:grid;grid-template-columns:84px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.slot:first-child{border-top:0}
+.slot time{font-size:13px;color:var(--muted)}
+.why{font-size:12px;color:var(--muted)}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--court);font-size:22px;line-height:1;font-weight:700}
+.stepper input{width:76px;text-align:center;font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums}
+.rule-num{font-family:var(--display);color:var(--accent);font-size:18px;line-height:1}
+.rule{display:grid;grid-template-columns:22px 1fr;gap:8px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:5}
+nav.tabs button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);padding:4px 0}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:700}
+nav.tabs button[aria-current="page"] svg{color:var(--accent)}
+.banner{background:var(--ink);color:var(--bg);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.banner .muted{color:inherit;opacity:.75}
+.cdnum{font-family:var(--display);font-size:44px;line-height:1.1;font-variant-numeric:tabular-nums}
+.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.check input{margin-top:5px;accent-color:var(--def);width:18px;height:18px;flex:none}
+.tips h4{margin-top:4px}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th,table.t td{text-align:left;padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}
+table.t th{font-weight:700;color:var(--muted);font-size:12px;border-top:0}
+.wheel-wrap{position:relative;width:min(280px,80vw);aspect-ratio:1;margin:0 auto}
+.wheel-wrap svg{width:100%;height:100%;display:block}
+#wheel{transition:transform 3.2s cubic-bezier(.12,.75,.12,1);transform-origin:50% 50%}
+@media (prefers-reduced-motion: reduce){#wheel{transition:none}}
+.pin{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:22px solid var(--ink)}
+.btn{border:0;border-radius:12px;padding:11px 16px;background:var(--ink);color:var(--bg);font-weight:700}
+.btn.sub{background:var(--court);color:var(--ink)}
+.btn.warn{background:transparent;color:var(--danger);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:80px 1fr;gap:8px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.num{font-family:var(--display);font-size:18px;min-width:44px;padding:0 6px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--court);font-variant-numeric:tabular-nums;flex:none}
+.player{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.player:first-child{border-top:0}
+.player .nm{flex:1;min-width:0}
+.player .nm b{display:block;overflow-wrap:anywhere}
+.ev{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.ev:first-child{border-top:0}
+.date{font-variant-numeric:tabular-nums;text-align:center;border-radius:10px;background:var(--court);padding:4px 0;line-height:1.2}
+.date b{display:block;font-family:var(--display);font-size:18px}
+.date span{font-size:11px;color:var(--muted)}
+.days{font-family:var(--display);font-size:13px;color:var(--atk);white-space:nowrap}
+.note{font-size:12px;border-radius:10px;padding:8px 10px;background:var(--court);color:var(--muted)}
+.icon-btn{border:0;background:none;color:var(--muted);font-size:13px;padding:4px 6px;text-decoration:underline}
+.err{color:var(--danger);font-size:12px}
+.result{font-family:var(--display);font-size:20px;text-align:center}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>チームバレー帳</h1>
+  <span class="who" id="who"></span>
+</header>
+<main id="app"></main>
+<nav class="tabs" aria-label="メニュー">
+  <button data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3.5 9.5c5 1 12 1 17 0M12 3c-3 4-3 14 0 18"/></svg>ホーム</button>
+  <button data-tab="tactics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 7h16"/><circle cx="9" cy="12" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="12" cy="17" r="1.3"/></svg>戦術</button>
+  <button data-tab="skills"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h5"/></svg>技術</button>
+  <button data-tab="practice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>練習</button>
+  <button data-tab="team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.5a3 3 0 0 1 0 5.5M18 14c2 .8 3 3 3 6"/></svg>チーム</button>
+</nav>
+<script>
+/* ---------- content ---------- */
+const POS = {
+  S:{name:"セッター",grp:"set",duty:["2本目をトスにして攻撃を組み立てる","センター攻撃では3枚ブロックに入る"],rule:["1本目を触ったらすぐ「お願い！」","取るのは正面の強打とフェイントだけ"],cards:["toss"],kiso:"setter"},
+  L:{name:"前衛レフト",grp:"atk",duty:["スパイク（得点源）とレフト側のブロック","ブロックに入らない時はインナー処理と次の攻撃準備"],rule:["2段トスでは触らず開いて「レフト！」","ネットから3m前後下がり、アタッカーに体を向ける"],cards:["spike","block"],kiso:"spiker"},
+  LC:{name:"前衛 左C",grp:"atk",duty:["ブロックの中心、速攻","反対側のブロック時は三角形の前の角"],rule:["第2セッターのトスで打てる準備をして呼ぶ","三角形では中央寄りの短いクロスを担当"],cards:["block","spike"],kiso:"spiker"},
+  RC:{name:"前衛 右C（第2セッター）",grp:"atk",duty:["ブロック、速攻","セッターの代わりにトスを上げる"],rule:["「お願い！」で「トス！」と言って入る","高く、ネットから離して。アンダーでもOK"],cards:["toss","block"],kiso:"spiker"},
+  R:{name:"前衛ライト",grp:"atk",duty:["スパイクとライト側のブロック","ブロックに入らない時はインナー処理と次の攻撃準備"],rule:["2段トスでは触らず開いて「ライト！」","ネットから3m前後下がり、アタッカーに体を向ける"],cards:["spike","block"],kiso:"spiker"},
+  M:{name:"中衛（レシーブ専門）",grp:"def",duty:["サーブレシーブと強打レシーブの中心","ラリー中はフェイントとブロック後ろのボール"],rule:["関わる境界はすべて中衛優先","一番早く「オーライ」を出す"],cards:["recv","dig","basic"],kiso:"receiver"},
+  BL:{name:"後衛L",grp:"def",duty:["左奥の強打、カバー、声出し","サイド攻撃時は三角形の奥"],rule:["1列目の頭上は全部自分のボール","中衛のオーライでカバーへ"],cards:["dig","recv"],kiso:"receiver"},
+  BC:{name:"後衛C",grp:"def",duty:["中央奥、ブロックアウトの処理","全体への声出し"],rule:["後衛どうしの境界は後C優先","3枚ブロック時は奥へのブロックアウト担当"],cards:["dig","recv"],kiso:"receiver"},
+  BR:{name:"後衛R",grp:"def",duty:["右奥の強打、カバー、声出し","反対側の攻撃では三角形の奥"],rule:["1列目の頭上は全部自分のボール","中衛のオーライでカバーへ"],cards:["dig","recv"],kiso:"receiver"}
+};
+const GRP = {atk:{c:"var(--atk)",bg:"var(--atk-bg)",label:"前衛"},def:{c:"var(--def)",bg:"var(--def-bg)",label:"守備"},set:{c:"var(--set)",bg:"var(--set-bg)",label:"セッター"}};
+const SHORT = {S:"S",L:"レフト",LC:"左C",RC:"右C",R:"ライト",M:"中衛",BL:"後L",BC:"後C",BR:"後R"};
+const FORM = {
+  recv:{label:"レシーブ",note:"前衛4人と中衛が横1列。肩より高いボールは見送って後衛へ。",pts:{S:[200,30],L:[40,95],LC:[95,95],M:[150,95],RC:[205,95],R:[260,95],BL:[65,230],BC:[150,230],BR:[235,230]},block:[],tri:[]},
+  side:{label:"サイド攻撃",note:"相手レフトの攻撃。ライト・右Cの2枚ブロック、左C・中衛・後Lで三角形。",pts:{RC:[220,24],R:[262,24],S:[170,52],L:[38,62],LC:[105,80],M:[180,112],BL:[62,228],BC:[150,255],BR:[245,222]},block:["RC","R"],tri:[["LC","M","BL"]]},
+  center:{label:"センター攻撃",note:"左C・S・右Cの3枚ブロック。中衛を頂点に左右2つの三角形（案）。",pts:{LC:[108,24],S:[150,24],RC:[192,24],L:[38,88],M:[150,98],R:[262,88],BL:[52,225],BC:[150,258],BR:[248,225]},block:["LC","S","RC"],tri:[["L","M","BL"],["R","M","BR"]]}
+};
+const RULES = [
+  {h:"声は3種類だけ",b:["取る「オーライ」","譲る「任せた」","警戒「フェイント！」"]},
+  {h:"迷ったら：中衛 → 後ろ → 先に声",b:["中衛が関わる境界は中衛","前後なら後ろの人","それでも迷えば先に声を出した人"]},
+  {h:"サーブレシーブは高さで決める",b:["肩より高いボールは1列目が見送る","サーバーが打った直後に「任せた」","後衛は1列目の頭上を全部取るつもりで"]},
+  {h:"前後のボールは頂点までに決める",b:["迷ったら触らずに、よける","後ろは「前は抜けてくる」前提で構える"]},
+  {h:"2段トスは「打つ人が呼び、それ以外が上げる」",b:["レフト・ライトは触らず開いて呼ぶ","上げる順：セッター → 右C → 一番近い人","上げる人は「トス！」と宣言"]},
+  {h:"セッターが1本目を触ったら",b:["セッター「お願い！」","右C「トス！」で2本目へ"]},
+  {h:"ラリー中は三角形で守る",b:["ブロックが閉めたコースは捨てる","三角形の内側は中衛","外の手前は前の角、外の奥は後衛"]}
+];
+const CARD_GROUPS = [
+  {h:"サーブ",ids:["floater","jfloat","jump","under","serveTarget"]},
+  {h:"攻撃",ids:["spike","toss"]},
+  {h:"守備",ids:["basic","recv","dig","block"]}
+];
+const CARDS = {
+  basic:{t:"基本動作",sub:"スプリットステップ・目線・面",point:"すべてのレシーブの土台。打つ瞬間に準備が終わっているか。",rows:[["反応が遅れる","相手が打つ瞬間に足が止まっている","打つ瞬間にトン"],["コースが読めない","ボールだけを目で追っている","トスが上がったら、打つ人を見る"],["レシーブが散らばる","腕を振って当てている","腕を振らずに、面を向けるだけ"]],
+    tips:[{h:"スプリットステップ",b:["相手が打つ瞬間に数cm跳び、両足同時に着地して動き出す","足は肩幅より少し広く、かかとを少し浮かせる"]},{h:"目線",b:["ボール → セッター → アタッカー（助走・肩・腕）→ ボール","ボールを凝視せず、相手全体を見る"]},{h:"面の作り方（アンダー）",b:["親指をそろえて組み、肘を伸ばす","手首と肘の間の平らな部分で当てる","面を返したい方向に向ける。横のボールは肩を入れて面だけでも向ける"]}]},
+  floater:{t:"フローターサーブ",sub:"チームの基本サーブ",point:"1本制なので「入れる → コース → 強さ」の順。",rows:[["ネットにかかる","トスが低い、打点が下がっている","トスは少し高めに、打点を上げて"],["奥にアウトする","下からこすり上げている、体が後ろに倒れる","当てて止める、体重は前へ"],["左右にぶれる","トスの位置が毎回違う","トスは毎回同じ場所に"],["揺れない","手首を使って回転がかかる","手首を固めて、真ん中を叩く"],["本番で入らない","緊張で動きが毎回変わる","いつもの手順で打つ"]],
+    tips:[{h:"打ち方",b:["打つ手と反対の足を前に出し、体は狙う方向へ","トスは打つ手の肩の前・少し高めに、回転をかけずに上げる","手のひらの硬い部分でボールの中心を押し出し、当てたら止める"]}]},
+  jfloat:{t:"ジャンプフローター",sub:"高い打点から揺らす",point:"高さで角度がつく分、揺れが大きくなる。トスの安定が9割。",rows:[["タイミングが合わない","トスの高さ・位置が毎回違う","トスは前方に、毎回同じ高さで"],["ネットにかかる","跳ぶのが早く、落ちながら打っている","トスを見てから踏み切る"],["奥にアウトする","手首を使って押し込んでいる","当てて止める、振り抜かない"],["揺れない","回転がかかっている","手首を固めて、真ん中を叩く"],["エンドラインを踏む","踏み切り位置が近い","踏み切りはラインから余裕をもって"]],
+    tips:[{h:"打ち方",b:["助走は2〜3歩。トスは打つ手側の前方に、無回転で上げる","最高点の少し手前で、体の前でボールを捉える","フローターと同じく、当てたら腕を止める"]},{h:"使いどころ",b:["フローターが安定して入るようになってから","1本制の大会では、練習で安定して入るまでは温存する"]}]},
+  jump:{t:"ジャンプサーブ",sub:"スパイクと同じ強打",point:"一番強いが一番ミスが出やすい。1本制では使う場面を選ぶ。",rows:[["トスが安定しない","腕が伸び切らず、回転がばらつく","腕を伸ばしきって、同じ回転で前へ"],["ネットにかかる","トスが後ろで、打点が後ろ","ボールを前に置いて、前に跳ぶ"],["アウトする","ボールの下を叩いている、回転不足","上からかぶせて、ドライブをかける"],["タイミングが合わない","トスを見る前に走り出している","トスの頂点を見て助走に入る"]],
+    tips:[{h:"打ち方",b:["トスは高く、前方へ（エンドラインの内側に落ちる位置）","スパイクと同じ助走で、前に跳びながら高い打点で叩く","手首でドライブをかけて、奥で落とす"]},{h:"使いどころ",b:["点差に余裕がある場面、または入る確率が高い人だけ","15点制ではミス1本が重いので、チームで使う人と場面を決めておく"]}]},
+  under:{t:"アンダーサーブ",sub:"一番確実な1本",point:"確実に入れることを最優先にする場面の切り札。",rows:[["ネットにかかる","腕の振りが小さい、当たる位置が上","後ろから大きく振り子のように"],["アウトする","強く打ちすぎ、体が後ろに倒れる","力は7割、体重は前へ"],["左右にぶれる","腕がまっすぐ振れていない","振り終わりを狙う方向へ"],["当たり損ねる","ボールを放り上げている","ボールは持った手の上で、離すだけ"]],
+    tips:[{h:"打ち方",b:["ボールを持つ手は腰の高さで体の前に","打つ手は後ろから前へ、振り子のように振る","手のひらの付け根（または軽く握った拳）で、ボールの下側を打つ"]},{h:"使いどころ",b:["初心者、緊張する場面、絶対にミスできない終盤"]}]},
+  serveTarget:{t:"サーブの狙い所",sub:"図で見る、どこを狙うか",point:"9人制の相手は1列目＋後衛3人の形が多い。崩す場所はある程度決まっている。",fig:true,rows:[],tips:[{h:"1本制での注意",b:["ライン際は狙いすぎない。ラインから1mほど内側を目標にする","まず入れる。狙いは「人」と「間」が優先、ライン際は最後"]}]},
+  spike:{t:"スパイク",sub:"コース打ち・ブロックアウト・助走",point:"最後の2歩を速く強く。打つ前にコースを決める。",rows:[["タイミングが合わない","走り出しが早すぎる","トスが上がるのを見てから入る"],["ネットにかかる","打点が前すぎる、真下に叩こうとしている","奥を狙って"],["アウトする","ボールの下を叩いている","ボールの上を叩く、手首をかぶせる"],["ネットに触れる","前に流れながら跳んでいる","前ではなく、真上に跳ぶ"],["ブロックに止められる","コースが毎回同じ","コースを見て、打ち分ける"]],
+    tips:[
+      {h:"コース打ちのコツ",b:["コースは助走の向きで作る。体の正面に打つのが一番強い","クロスは外から内へ入り、ボールの外側を叩く。ストレートはボールの内側に体を入れ、サイドラインと平行に振る","最後の調整は手首。同じフォームから打ち分けると読まれにくい"]},
+      {h:"長いコースを打つコツ",b:["一番長いのはクロスの対角の奥","打点を高く前に取り、ボールの後ろ〜少し上を叩いて手首でドライブをかける","叩きつけるほど短くなる。基礎練の「ドライブ」と同じ感覚で、相手の足元より奥へ","ネットから離れたトスや2段トスは、長いコースが安全"]},
+      {h:"ブロックアウトの狙い方",b:["狙うのはブロッカーの外側の手（サイドライン側）の指先〜手の外側","ブロックが完成していて抜けないとき、トスがネットに近いときに有効","強さより当てる場所。打点を少し高めに取り、外へ向けて振る"]}
+    ],
+    timing:[["オープン","高い山なり","トスの頂点付近で助走開始。待ってから入る","トスが上がった瞬間に走らない"],["平行","速く低く、サイドへ","セッターがボールに触る頃に助走開始。トスを追って外へ","踏み切り位置はアンテナ寄り"],["Aクイック","セッターのすぐ前に低く","セッターが触る前に助走を始め、トスとほぼ同時に踏み切る","先に跳んで待ち、セッターに合わせてもらう"]]},
+  toss:{t:"オーバートス・2段トス",sub:"ハンドリング・距離の調整・バックトス",point:"距離は腕ではなく膝で調整する。2段トスは高さ優先、アンダーでもOK。",rows:[["ボールに回転がかかる","手のひらで触っている","指の腹で、おでこの前で"],["遠くへ飛ばない","腕だけで上げている","膝を使って、全身で押し出す"],["方向がぶれる","体が上げる方向を向いていない","上げる方向におへそを向ける"],["2段トスが低い・近い","速さや距離を欲張っている","高く、ネットから離して"],["2段トスが間に合わない","判断と移動が遅い","トス！と言って先に入る"]],
+    tips:[
+      {h:"ハンドリングのコツ",b:["両手の親指と人差し指で三角形を作り、ボールの形に指を広げる","指の腹（第1〜第2関節）で包む。手のひらはつけない","おでこの前上で受け、膝・肘・手首を同時に伸ばして送り出す","左右の手の力を均等に。片方が強いと回転がかかる"]},
+      {h:"短い距離のトス",b:["膝の曲げ伸ばしは小さく、指と手首中心で柔らかく","ボールを持ちすぎない。触ったらすぐ離す","速攻のトスはセッターの近くに低く、毎回同じ場所へ"]},
+      {h:"長く伸ばしたいとき",b:["膝を深く曲げ、下半身から押し出す","上げる方向へ一歩踏み出して体重を移す","腕を最後まで伸ばし切る。軌道は少し山なりに","力は「脚 → 体 → 腕 → 指」の順に伝える"]},
+      {h:"バックトス",b:["正面トスと同じ構え・同じ位置で触る（読まれにくい）","額の上で捉え、胸を張って腕を真上〜頭の後ろへ押し出す","腰を反らさない。手首を後ろに返して方向を出す","基礎練の「真下にバウンドさせて入るバックトス」で感覚を作る"]}
+    ]},
+  recv:{t:"レセプション",sub:"サーブレシーブ",point:"返す目標はネットから少し離れたセッターの頭上。",rows:[["後ろに飛ぶ","腕を振っている","振らない、面で止める"],["セッターに返らない","面が返したい方向を向いていない","面をセッターに向けて"],["横のボールを弾く","足が止まっている","足で動いて、肩を入れる"],["揺れるボールに合わない","腕を組むのが早すぎる","腕は直前に組む、足で合わせる"],["遅れる","構えが高い","低く、打つ瞬間にトン"]]},
+  dig:{t:"強打レシーブ",sub:"ディグ",point:"重心を低く、膝の角度を変えずに受ける。",rows:[["弾いてコート外へ","勢いを吸収できていない","面を上に向けて、勢いを殺す"],["反応できない","構えが高い、準備が遅い","低く、打つ瞬間に止まって構える"],["正面以外が取れない","足が出ていない","一歩出して、面を向ける"],["顔の近くで腕が出ない","アンダーにこだわっている","顔の前は手で"],["立ち位置が悪い","ブロックを見ていない","ブロックの陰に入らない"]]},
+  block:{t:"ブロック",sub:"ワンタッチも成功",point:"塞ぐコースを後ろに声で伝える。",rows:[["手とネットの間に落ちる","手がネットから離れている","ネットに沿って、手を前に出す"],["指を弾かれてアウト","両手の間が開いている","指を開いて固める、間を閉める"],["跳ぶのが早い","アタッカーより先に跳んでいる","アタッカーが跳んでから跳ぶ"],["移動が間に合わない","足の運びが遅い","止まってから真上に跳ぶ"],["ネットに触れる","前に流れている","真上に跳ぶ"]]}
+};
+const TARGETS = [
+  {n:1,x:122,y:95,r:16,h:"人と人の間",b:"1列目の選手どうしの間。どちらが取るか迷わせて、お見合いや弾きを誘う。",tag:"基本"},
+  {n:2,x:150,y:162,r:20,h:"1列目と後衛の間（肩〜頭の高さ）",b:"見送るか取るかの判断が一番難しい高さ。前衛が直前で任せる、後衛が構えていない、を誘う。",tag:"有効"},
+  {n:3,x:262,y:95,r:16,h:"相手エースのアタッカー",b:"レシーブさせて助走を遅らせる。打たれても威力と選択肢が減る。",tag:"戦術"},
+  {n:4,x:150,y:270,r:18,h:"エンドライン際の奥",b:"後衛を下げさせて体勢を崩す。1本制なのでラインから1mほど内側を目標に。",tag:"注意"},
+  {n:5,x:30,y:200,r:16,h:"サイドライン際",b:"レシーブ範囲の外側で、横に動かして面を崩す。外に出やすいので余裕をもって。",tag:"注意"}
+];
+const KISO = {
+  spiker:{n:"スパイカー",items:[
+    ["テイクバックの叩きつけ",""],["スパイク叩きつけ",""],["スパイク ドライブ","自分の高い打点で手首を使って回転をかけ、コートの奥を狙う。パスでは相手の足元を狙う"],["ストレート叩きつけ",""],["ストレート ドライブ",""],["クロス ドライブ",""],["アンダーパス 正面",""],["アンダーパス サイド","一度自分の真上にレシーブしてから、体の向きを変えて横へパス。左右交互"],["オーバーパス 正面",""],["サーブレシーブ","普段の1.5〜2倍離れてペアにサーブ、レシーブして返球。打つ側もまっすぐ打つ意識"]]},
+  receiver:{n:"レシーバー",items:[
+    ["軽くキャッチボール",""],["アンダーパス 近め 正面",""],["アンダーパス サイド","一度真上にレシーブしてから体の向きを変えて横へ。左右交互"],["オーバーパス 正面",""],["玉出し → 振り返って拾う","ペアの頭を越すボールを投げ、振り返って追いかけ、後ろ向きにアンダーでペアへ返す。コート外のボールをつなぐ想定"],["アンダー 正面 離れて","普段の1.5〜2倍の距離。腕だけでは届かないので、腰を落として下半身で飛ばす"],["オーバー 正面 離れて","同上。下半身で飛ばす"],["サーブレシーブ","普段の1.5〜2倍離れてペアにサーブ、レシーブして返球"]]},
+  setter:{n:"セッター",items:[
+    ["軽くキャッチボール",""],["アンダーパス 近め 正面",""],["アンダーパス サイド","一度真上に上げてから体の向きを変えて横へ。左右交互"],["オーバーパス 正面",""],["オーバーパス サイド","一度真上に上げてから体の向きを変えて横へ。左右交互"],["オーバー バックトス","一度真下にバウンドさせ、跳ねたボールの下に入ってバックトス"],["オーバー 正面 離れて","普段の1.5〜2倍の距離。下半身で飛ばす"],["オーバー サイド 離れて",""],["オーバー バックトス 離れて",""]]}
+};
+const DRILLS = {
+  kiso:{n:"アップ＋基礎練（ペアパス）",m:30,why:"役割別メニュー（練習タブ下部）"},
+  men2:{n:"2メン（声出しルール）",m:15,why:"毎回声を出してから触る"},
+  men3:{n:"3メン（間のボール入り）",m:15,why:"2人の間に来たボールで譲り合いの練習"},
+  border:{n:"境界ボール判断",m:15,why:"相手コートを越える前に声"},
+  miokuri:{n:"見送り判断レシーブ",m:20,why:"1列目の肩〜頭を狙うサーブで前後の判断"},
+  recv:{n:"サーブレシーブ（間を狙う）",m:20,why:"人と人の間に打つ"},
+  dig:{n:"強打レシーブ",m:15,why:"2人の間に打ち込む"},
+  blockdig:{n:"ブロック＆ディグ",m:20,why:"閉めたコースを声で伝える"},
+  tri:{n:"三角形守備",m:20,why:"台上からクロス・フェイント・ブロック当て"},
+  spike:{n:"スパイク・コース打ち",m:20,why:"狙うコースを宣言して打つ"},
+  toss2:{n:"2段トス判断",m:15,why:"乱れたボールから攻撃まで通す"},
+  serve:{n:"サーブ練習（1本勝負）",m:15,why:"本番と同じ1本の緊張感"},
+  game:{n:"試合形式",m:30,why:"お見合いで落としたら相手に2点"},
+  small:{n:"少人数ゲーム（コーチ入れ）",m:30,why:"9人そろう側は配置どおりに"},
+  review:{n:"振り返り",m:5,why:"できたこと・課題・次回やること"}
+};
+const THEMES = {
+  miai:{n:"お見合いをなくす",men:"men3",seq:["miokuri","border"],c:"#E2552E"},
+  recv:{n:"サーブ・レシーブ",men:"men2",seq:["serve","recv"],c:"#1C8A72"},
+  atk:{n:"攻撃",men:"men3",seq:["spike","toss2"],c:"#F2A900"},
+  def:{n:"守備・連携",men:"men2",seq:["dig","tri"],c:"#3D5A98"},
+  serve:{n:"サーブで崩す",men:"men2",seq:["serve","border"],c:"#8A4FB8"},
+  game:{n:"ゲーム多め",men:"men3",seq:["recv"],c:"#5F6673"}
+};
+const POS_OPTS = [["S","セッター"],["L","レフト"],["LC","左C"],["RC","右C"],["R","ライト"],["M","中衛"],["BL","後L"],["BC","後C"],["BR","後R"],["",'未定']];
+const EV_KINDS = ["大会","練習試合","締切","その他"];
+
+/* ---------- state ---------- */
+const S = {tab:"home",tsub:"form",form:"recv",sel:null,skill:null,target:null,q:"",theme:"miai",ppl:14,mine:null,done:{},kiso:"spiker",spinning:false,rot:0,picked:null,teamSub:"roster",luId:null,luSet:"s1",luPos:null,regOnly:true,editR:null,editE:null,showPast:false};
+try{ S.mine = localStorage.getItem("vb-mine"); }catch(e){}
+const D = {mode:"loading",roster:[],events:[],lineups:[],canWrite:true,note:"",err:""};
+
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- data layer ---------- */
+let DB = null;
+const LS = {get(k){try{return JSON.parse(localStorage.getItem(k)||"[]")}catch(e){return []}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function useLocal(){ D.mode="local"; D.roster=LS.get("vb-roster"); D.events=LS.get("vb-events"); D.lineups=LS.get("vb-lineups"); render(); }
+async function initData(){
+  if(!window.claude || typeof window.claude.use!=="function"){ useLocal(); return; }
+  try{
+    DB = await window.claude.use("db");
+    if(!DB){ useLocal(); return; }
+    try{ const u = await window.claude.use("user"); if(u){ const w = await u.can("data.write"); if(w===false) D.canWrite=false; } }catch(e){}
+    D.mode="db";
+    let got = {r:false,e:false};
+    const timer = setTimeout(()=>{ if(!got.r||!got.e){ D.note="データに接続できていません。少し待つか、通信状況を確認してください。"; render(); } },10000);
+    const done = ()=>{ if(got.r&&got.e){ clearTimeout(timer); D.note=""; } };
+    DB.collection("roster").onSnapshot(s=>{ D.roster=s.docs.map(d=>({id:d.id,...d.data()})); if(!s.metadata.fromCache){got.r=true;done();} render(); },e=>{ clearTimeout(timer); D.note="名簿を読み込めませんでした。"; render(); });
+    DB.collection("events").onSnapshot(s=>{ D.events=s.docs.map(d=>({id:d.id,...d.data()})); if(!s.metadata.fromCache){got.e=true;done();} render(); },e=>{ clearTimeout(timer); D.note="大会予定を読み込めませんでした。"; render(); });
+    DB.collection("lineups").onSnapshot(s=>{ D.lineups=s.docs.map(d=>({id:d.id,...d.data()})); render(); },e=>{ D.note="オーダーを読み込めませんでした。"; render(); });
+    render();
+  }catch(e){ useLocal(); }
+}
+async function save(col,id,obj){
+  D.err="";
+  if(D.mode==="db"){
+    try{ if(id){ await DB.collection(col).doc(id).set(obj); return id; } const ref=DB.collection(col).doc(); await ref.set(obj); return ref.id; }
+    catch(e){ if(e&&e.code==="invalid_argument"){ D.canWrite=false; D.err="編集の権限がありません。キャプテンに共有設定を確認してください。"; } else if(e&&e.code==="quota_exceeded"){ D.err="保存できる件数の上限です。古い予定を削除してください。"; } else D.err="保存できませんでした。もう一度試してください。"; render(); return false; }
+  }
+  const arr = D[col]; const nid = id || ("l"+Date.now());
+  if(id){ const i=arr.findIndex(x=>x.id===id); if(i>=0) arr[i]={id,...obj}; } else arr.push({id:nid,...obj});
+  LS.set("vb-"+col,arr); return nid;
+}
+async function remove(col,id){
+  if(D.mode==="db"){ try{ await DB.collection(col).doc(id).delete(); }catch(e){ D.err="削除できませんでした。"; render(); } return; }
+  D[col]=D[col].filter(x=>x.id!==id); LS.set("vb-"+col,D[col]);
+}
+
+/* ---------- lineups ---------- */
+const SETS=["s1","s2","s3"], SET_LABEL={s1:"第1セット",s2:"第2セット",s3:"第3セット"};
+const POS_ORDER=["S","L","LC","RC","R","M","BL","BC","BR"];
+const player = id=>D.roster.find(x=>x.id===id);
+const lu = ()=>D.lineups.find(x=>x.id===S.luId);
+function setData(l,k){ const x=((l&&l.sets)||{})[k]||{}; return {pos:{...(x.pos||{})},serve:[...(x.serve||[])]}; }
+function syncServe(sd){ const placed=POS_ORDER.map(p=>sd.pos[p]).filter(Boolean); const sv=sd.serve.filter(id=>placed.includes(id)); placed.forEach(id=>{ if(!sv.includes(id)) sv.push(id); }); sd.serve=sv; return sd; }
+let luQueue = Promise.resolve();
+function writeSet(k,sd){
+  const l=lu(); if(!l) return;
+  const sets={...(l.sets||{})}; sets[k]=syncServe(sd);
+  const body={name:l.name,date:l.date||"",sets};
+  const i=D.lineups.findIndex(x=>x.id===l.id); if(i>=0) D.lineups[i]={id:l.id,...body};
+  render();
+  luQueue = luQueue.then(()=>save("lineups",l.id,body));
+}
+
+/* ---------- helpers ---------- */
+function today(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+function parseD(s){ if(!s) return null; const [y,m,d]=s.split("-").map(Number); if(!y) return null; return new Date(y,m-1,d); }
+function daysTo(s){ const d=parseD(s); return d?Math.round((d-today())/864e5):null; }
+const WD = ["日","月","火","水","木","金","土"];
+const endOf = e=>(e.end&&e.end>=e.date)?e.end:e.date;
+function upcoming(){ return D.events.filter(e=>{const n=daysTo(endOf(e));return n!==null&&n>=0}).sort((a,b)=>a.date<b.date?-1:1); }
+function past(){ return D.events.filter(e=>{const n=daysTo(endOf(e));return n===null||n<0}).sort((a,b)=>a.date>b.date?-1:1); }
+function nextTournament(){ return upcoming().find(e=>(e.kind||"大会")==="大会"); }
+function countdown(){
+  const t=nextTournament(); if(!t) return "";
+  const n=daysTo(t.date), live=n<=0;
+  return `<div class="banner cd"><span class="muted">次の大会まで</span><div class="row" style="align-items:baseline;gap:6px">${live?`<b class="cdnum">開催中</b>`:`<b class="cdnum">${n}</b><span>日</span>`}</div><span style="overflow-wrap:anywhere">${esc(t.name)}　${esc(rangeText(t))}</span></div>`;
+}
+function md(s){ const d=parseD(s); return d?`${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}）`:""; }
+function rangeText(e){ return e.end&&e.end>e.date?`${md(e.date)}〜${md(e.end)}`:md(e.date); }
+
+/* ---------- views ---------- */
+function courtSVG(key, sel){
+  const f = FORM[key]; let s = `<svg viewBox="0 0 300 300" role="img" aria-label="${f.label}の配置図">`;
+  s += `<rect x="1" y="1" width="298" height="298" rx="4" fill="var(--court)" stroke="var(--line)"/><rect x="0" y="0" width="300" height="5" fill="var(--ink)"/>`;
+  if(key==="recv") s += `<line x1="10" y1="160" x2="290" y2="160" stroke="var(--muted)" stroke-dasharray="4 4"/>`;
+  f.tri.forEach(t=>{ const p=t.map(k=>f.pts[k]); s+=`<polygon points="${p.map(q=>q.join(",")).join(" ")}" fill="var(--def)" fill-opacity=".10" stroke="var(--def)" stroke-dasharray="5 4" stroke-width="1.2"/>`; });
+  Object.entries(f.pts).forEach(([k,[x,y]])=>{
+    const g = GRP[POS[k].grp], blk = f.block.includes(k), on = sel===k;
+    s += `<g class="pl" tabindex="0" role="button" data-pos="${k}" aria-label="${POS[k].name}"><circle cx="${x}" cy="${y}" r="${on?22:19}" fill="${g.bg}" stroke="${on?'var(--accent)':g.c}" stroke-width="${on?4:(blk?3:1.2)}"/><text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="${SHORT[k].length>2?11:12}" font-weight="700" fill="${g.c}" font-family="var(--body)">${SHORT[k]}</text></g>`;
+  });
+  return s+`</svg>`;
+}
+function targetSVG(sel){
+  let s = `<svg viewBox="0 0 300 300" role="img" aria-label="サーブの狙い所（相手コート）">`;
+  s += `<rect x="1" y="1" width="298" height="298" rx="4" fill="var(--court)" stroke="var(--line)"/><rect x="0" y="295" width="300" height="5" fill="var(--ink)"/>`;
+  s += `<text x="150" y="288" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="var(--body)">ネット（こちら側から打つ）</text>`;
+  const ghost = [[40,95],[95,95],[150,95],[205,95],[260,95],[65,230],[150,230],[235,230]];
+  s += `<g transform="translate(0,-10)">`;
+  ghost.forEach(([x,y],i)=>{ s+=`<circle cx="${x}" cy="${300-y}" r="12" fill="var(--surface)" stroke="var(--muted)" stroke-dasharray="3 2"/>`; });
+  s += `<text x="150" y="${300-95}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="var(--muted)">中衛</text></g>`;
+  s += `<text x="12" y="20" font-size="11" fill="var(--muted)" font-family="var(--body)">相手のエンドライン</text>`;
+  TARGETS.forEach(t=>{ const on=sel===t.n; const y=300-t.y; s+=`<g class="tg" tabindex="0" role="button" data-target="${t.n}" aria-label="${t.h}"><circle cx="${t.x}" cy="${y}" r="${t.r}" fill="var(--accent)" fill-opacity="${on?1:.55}" stroke="${on?'var(--ink)':'var(--accent)'}" stroke-width="${on?3:1}"/><text x="${t.x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="700" fill="var(--accent-ink)" font-family="var(--display)">${t.n}</text></g>`; });
+  return s+`</svg>`;
+}
+function roleBlock(k){
+  const p = POS[k], g = GRP[p.grp];
+  return `<div class="role" style="--c:${g.c}"><div><span class="tag" style="--c:${g.c};--tbg:${g.bg}">${g.label}</span></div><h3>${esc(p.name)}</h3><ul class="clean">${p.duty.map(d=>`<li>${esc(d)}</li>`).join("")}</ul><p class="muted">判断ルール</p><ul class="clean">${p.rule.map(d=>`<li>${esc(d)}</li>`).join("")}</ul></div>`;
+}
+function cardBtn(id){ const c=CARDS[id]; return `<button class="list-btn" data-skill="${id}"><span><b>${esc(c.t)}</b><br><small>${esc(c.sub)}</small></span><span class="arrow">›</span></button>`; }
+function evRow(e,withActions){
+  const d=parseD(e.date), n=daysTo(e.date), ne=daysTo(endOf(e)), multi=e.end&&e.end>e.date, dl=e.deadline?daysTo(e.deadline):null;
+  const kc = e.kind==="大会"?"var(--atk)":e.kind==="締切"?"var(--danger)":"var(--def)";
+  const kb = e.kind==="大会"?"var(--atk-bg)":e.kind==="締切"?"var(--atk-bg)":"var(--def-bg)";
+  return `<div class="ev"><div class="date">${d?`<span>${d.getMonth()+1}月</span><b>${d.getDate()}</b><span>${WD[d.getDay()]}</span>`:"<b>?</b>"}${multi?`<span style="display:block">〜${parseD(e.end).getMonth()+1}/${parseD(e.end).getDate()}</span>`:""}</div>
+  <div><div class="row" style="gap:6px"><span class="tag" style="--c:${kc};--tbg:${kb}">${esc(e.kind||"大会")}</span><b style="overflow-wrap:anywhere">${esc(e.name)}</b></div>
+  <div class="muted">${esc(rangeText(e))}${multi?`・${Math.round((parseD(e.end)-parseD(e.date))/864e5)+1}日間`:""}${e.place?`／${esc(e.place)}`:""}</div>
+  ${e.deadline?`<div class="muted">エントリー締切：${esc(e.deadline.replace(/-/g,"/"))}${dl!==null&&dl>=0?`（あと${dl}日）`:dl!==null?"（締切済み）":""}</div>`:""}
+  ${e.memo?`<div class="muted">${esc(e.memo)}</div>`:""}
+  ${withActions&&D.canWrite?`<div><button class="icon-btn" data-edit-e="${esc(e.id)}">編集</button></div>`:""}</div>
+  <div class="days">${n===null?"":n>0?`あと${n}日`:ne>=0?(multi?"開催中":"今日"):""}</div></div>`;
+}
+
+function viewHome(){
+  const mine = S.mine && POS[S.mine]; const next = upcoming()[0];
+  let h = countdown() + `<div class="banner" style="background:var(--surface);color:var(--ink);border:1px solid var(--line)"><span class="muted">今月のテーマ</span><b style="font-size:17px">${esc(THEMES[S.theme].n)}</b><span class="muted">判断ルールの7か条を全員でそろえる</span></div>`;
+  if(next) h += `<div class="card"><div class="row" style="justify-content:space-between"><h3>次の予定</h3><button class="icon-btn" data-tab="team" data-teamsub="events">すべて見る</button></div><div>${evRow(next,false)}</div></div>`;
+  h += `<h2>あなたのポジション</h2><div class="chips">${Object.keys(POS).map(k=>`<button class="chip" data-mine="${k}" aria-pressed="${S.mine===k}">${k==="S"?"セッター":SHORT[k]}</button>`).join("")}</div>`;
+  if(mine){
+    h += `<div class="card">${roleBlock(S.mine)}</div><h2>まず読むカード</h2><div class="stack">${mine.cards.map(cardBtn).join("")}<button class="list-btn" data-tab="practice" data-kiso="${mine.kiso}"><span><b>基礎練メニュー（${KISO[mine.kiso].n}）</b><br><small>練習はじめの20〜30分</small></span><span class="arrow">›</span></button></div>`;
+  } else h += `<p class="muted">ポジションを選ぶと、役割と読むべきカードが出ます。</p>`;
+  return h;
+}
+function viewTactics(){
+  let h = `<div class="seg" role="group" aria-label="表示"><button data-tsub="form" aria-pressed="${S.tsub==="form"}">配置図</button><button data-tsub="rules" aria-pressed="${S.tsub==="rules"}">判断ルール</button></div>`;
+  if(S.tsub==="rules") return h + `<p class="muted">チーム全員の約束です。迷ったらここに戻る。</p>` + RULES.map((r,i)=>`<div class="card rule"><span class="rule-num">${i+1}</span><div><h3>${esc(r.h)}</h3><ul class="clean">${r.b.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div></div>`).join("");
+  const f = FORM[S.form];
+  h += `<div class="seg" role="group" aria-label="場面">${Object.entries(FORM).map(([k,v])=>`<button data-form="${k}" aria-pressed="${S.form===k}">${v.label}</button>`).join("")}</div>`;
+  h += `<div class="card court">${courtSVG(S.form,S.sel)}<div class="legend"><span style="--c:var(--atk)">前衛</span><span style="--c:var(--def)">中衛・後衛</span><span style="--c:var(--set)">セッター</span>${f.block.length?`<span style="--c:transparent">太枠＝ブロック</span>`:""}</div><p class="muted">${esc(f.note)}</p></div>`;
+  h += S.sel ? `<div class="card">${roleBlock(S.sel)}</div>` : `<p class="muted">選手をタップすると役割が出ます。</p>`;
+  return h;
+}
+function tipsBlock(c){
+  if(!c.tips) return "";
+  return `<div class="card tips">${c.tips.map(t=>`<h4>${esc(t.h)}</h4><ul class="clean">${t.b.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`).join("")}</div>`;
+}
+function viewSkills(){
+  if(S.skill){
+    const c = CARDS[S.skill];
+    let h = `<button class="back" data-skill="">‹ 技術カード一覧</button><h2>${esc(c.t)}</h2><div class="card"><p><b>ポイント</b>　${esc(c.point)}</p></div>`;
+    if(c.fig){
+      const t = TARGETS.find(x=>x.n===S.target);
+      h += `<div class="card court">${targetSVG(S.target)}<p class="muted">番号をタップすると、狙う理由が出ます。点線の丸は相手の一般的な並び。</p></div>`;
+      h += t ? `<div class="card"><div class="row"><span class="num">${t.n}</span><div><span class="tag" style="--c:var(--accent-ink);--tbg:var(--accent)">${t.tag}</span><h3>${esc(t.h)}</h3></div></div><p>${esc(t.b)}</p></div>` : `<div class="stack">${TARGETS.map(t=>`<button class="sym-row" data-target="${t.n}"><b>${t.n}. ${esc(t.h)}</b><span class="c">${esc(t.b)}</span></button>`).join("")}</div>`;
+      h += `<div class="card"><h4>おすすめの順番（1本制）</h4><ol class="clean"><li>まず入れる（全員）</li><li>人と人の間、1列目と後衛の間を狙う</li><li>慣れてきたら相手エースを狙う</li><li>ライン際は余裕があるときだけ</li></ol></div>`;
+    }
+    if(c.timing) h += `<div class="card"><h4>助走のタイミング</h4><div style="overflow-x:auto"><table class="t"><tr><th>攻撃</th><th>トス</th><th>助走開始・踏み切り</th></tr>${c.timing.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}<br><span class="why">${esc(r[3])}</span></td></tr>`).join("")}</table></div><p class="why">セッターのトスの速さで変わるので、チームのセッターと合わせて微調整する。</p></div>`;
+    h += tipsBlock(c);
+    if(c.rows.length) h += `<p class="muted">症状 → 原因 → 声かけ</p><div class="stack">${c.rows.map(r=>`<div class="sym-row"><b>${esc(r[0])}</b><span class="c">${esc(r[1])}</span><span><span class="cue">「${esc(r[2])}」</span></span></div>`).join("")}</div>`;
+    return h;
+  }
+  const q = S.q.trim();
+  let h = `<h2>技術カード</h2><input type="search" id="q" placeholder="症状で探す（例：ネット、アウト、遅れる）" value="${esc(q)}" aria-label="症状で探す">`;
+  if(q){
+    const hits=[]; Object.entries(CARDS).forEach(([id,c])=>{ c.rows.forEach(r=>{ if(r.join(" ").includes(q)) hits.push([id,c,r[0],r[2]]); }); (c.tips||[]).forEach(t=>t.b.forEach(b=>{ if((t.h+b).includes(q)) hits.push([id,c,t.h,b]); })); });
+    h += hits.length ? `<div class="stack">${hits.slice(0,30).map(([id,c,a,b])=>`<button class="sym-row" data-skill="${id}"><span class="muted">${esc(c.t)}</span><b>${esc(a)}</b><span class="c">${esc(b)}</span></button>`).join("")}</div>` : `<p class="muted">「${esc(q)}」に当てはまるものはまだありません。</p>`;
+  } else h += CARD_GROUPS.map(g=>`<h3 style="margin-top:4px">${g.h}</h3><div class="stack">${g.ids.map(cardBtn).join("")}</div>`).join("");
+  return h;
+}
+function buildPlan(){
+  const t = THEMES[S.theme], n = S.ppl, out=[]; let min=0;
+  const push=(k,ov)=>{ const d={...DRILLS[k],...(ov||{})}; out.push([min,d]); min+=d.m; };
+  push("kiso");
+  push(S.men||t.men);
+  t.seq.forEach(k=>push(k));
+  const left = 115-min;
+  if(n>=18) push("game",{m:left}); else if(n>=10) push("small",{m:left}); else push("dig",{n:"強打レシーブ＋判断ドリル（延長）",m:left,why:"9人以下なので試合形式の代わり"});
+  push("review");
+  return out;
+}
+const fmt = m=>`${Math.floor(m/60)}:${String(m%60).padStart(2,"0")}`;
+function wheelSVG(){
+  const keys=Object.keys(THEMES), n=keys.length, R=140, cx=150, cy=150; let s=`<svg viewBox="0 0 300 300" aria-hidden="true"><g id="wheel" style="transform:rotate(${S.rot}deg)">`;
+  keys.forEach((k,i)=>{ const a0=(i/n)*2*Math.PI-Math.PI/2, a1=((i+1)/n)*2*Math.PI-Math.PI/2, am=(a0+a1)/2;
+    const p=(a)=>[cx+R*Math.cos(a),cy+R*Math.sin(a)];
+    const [x0,y0]=p(a0),[x1,y1]=p(a1);
+    s+=`<path d="M${cx},${cy} L${x0},${y0} A${R},${R} 0 0 1 ${x1},${y1} Z" fill="${THEMES[k].c}" stroke="var(--surface)" stroke-width="3"/>`;
+    const tx=cx+R*.62*Math.cos(am), ty=cy+R*.62*Math.sin(am); let deg=am*180/Math.PI+90; const nd=((deg%360)+360)%360; if(nd>90&&nd<270) deg+=180;
+    const lab=THEMES[k].n; const parts = lab.length>6?[lab.slice(0,Math.ceil(lab.length/2)),lab.slice(Math.ceil(lab.length/2))]:[lab];
+    s+=`<text transform="translate(${tx},${ty}) rotate(${deg})" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="var(--body)">${parts.map((p,j)=>`<tspan x="0" dy="${j?16:(parts.length>1?-4:4)}">${esc(p)}</tspan>`).join("")}</text>`; });
+  s+=`<circle cx="${cx}" cy="${cy}" r="22" fill="var(--surface)" stroke="var(--line)"/></g></svg>`;
+  return s;
+}
+function viewPractice(){
+  const plan = buildPlan();
+  let h = `<h2>練習メニュー</h2><div class="card"><label class="muted" for="ppl">参加人数</label><div class="stepper"><button data-ppl="-1" aria-label="1人減らす">−</button><input type="number" id="ppl" inputmode="numeric" min="1" max="40" value="${S.ppl}"><button data-ppl="1" aria-label="1人増やす">＋</button><span class="muted">人</span></div>`;
+  h += `<p class="muted">テーマ</p><div class="chips">${Object.entries(THEMES).map(([k,v])=>`<button class="chip" data-theme="${k}" aria-pressed="${S.theme===k}">${v.n}</button>`).join("")}</div></div>`;
+  h += `<div class="card"><h3>テーマをルーレットで決める</h3><div class="wheel-wrap"><span class="pin"></span>${wheelSVG()}</div><button class="btn" data-spin="1" ${S.spinning?"disabled":""}>${S.spinning?"回転中…":"ルーレットを回す"}</button>${S.picked?`<p class="result" aria-live="polite">今日は「${esc(THEMES[S.picked].n)}」</p>`:""}</div>`;
+  h += `<div class="card"><div class="row" style="justify-content:space-between"><h3>2時間・コート1面</h3><span class="muted">${S.ppl>=18?"9対9ができる人数":S.ppl>=10?"片面9人＋コーチ":"試合形式なし"}</span></div><div class="row"><span class="muted">必ず入れる：</span><div class="chips">${["men2","men3"].map(m=>`<button class="chip" data-men="${m}" aria-pressed="${(S.men||THEMES[S.theme].men)===m}">${m==="men2"?"2メン":"3メン"}</button>`).join("")}</div></div><div>`;
+  plan.forEach(([m,d],i)=>{ const id=`d${i}`, key=`${S.theme}-${i}`; h+=`<div class="slot"><time>${fmt(m)}〜${fmt(m+d.m)}</time><label class="check" for="${id}"><input type="checkbox" id="${id}" data-done="${key}" ${S.done[key]?"checked":""}><span><b>${esc(d.n)}</b><br><span class="why">${esc(d.why)}</span></span></label></div>`; });
+  h += `</div></div>`;
+  const k = KISO[S.kiso];
+  h += `<h2>基礎練（ペアパス）</h2><p class="muted">準備を含めて最初の20〜30分。役割ごとにメニューが違います。</p><div class="seg" role="group" aria-label="役割">${Object.entries(KISO).map(([key,v])=>`<button data-kiso="${key}" aria-pressed="${S.kiso===key}">${v.n}</button>`).join("")}</div>`;
+  h += `<div class="card"><ol class="clean">${k.items.map(([n,note])=>`<li><b>${esc(n)}</b>${note?`<div class="why">${esc(note)}</div>`:""}</li>`).join("")}</ol></div>`;
+  return h;
+}
+function pname(id){ const p=player(id); return p?p.name:"（名簿から削除）"; }
+function pnum(id){ const p=player(id); return p?String(p.num??""):"-"; }
+function lineupCourt(sd,editable){
+  const f=FORM.recv; let s=`<svg viewBox="0 0 300 300" role="img" aria-label="オーダーの配置">`;
+  s+=`<rect x="1" y="1" width="298" height="298" rx="4" fill="var(--court)" stroke="var(--line)"/><rect x="0" y="0" width="300" height="5" fill="var(--ink)"/>`;
+  POS_ORDER.forEach(k=>{ const [x,y0]=f.pts[k]; const y=k==="S"?y0+8:y0; const id=sd.pos[k], g=GRP[POS[k].grp], on=S.luPos===k;
+    const sv = id? sd.serve.indexOf(id)+1 : 0;
+    s+=`<g class="pl" ${editable?`tabindex="0" role="button" data-lupos="${k}"`:""} aria-label="${POS[k].name}${id?"："+esc(pname(id)):"：未設定"}">`;
+    s+=`<circle cx="${x}" cy="${y}" r="${on?22:19}" fill="${id?g.bg:'var(--surface)'}" stroke="${on?'var(--accent)':g.c}" stroke-width="${on?4:1.4}" ${id?"":'stroke-dasharray="4 3"'}/>`;
+    s+=`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="${id?(pnum(id).length>2?12:15):11}" font-weight="700" fill="${g.c}" font-family="var(--display)">${id?esc(pnum(id)):SHORT[k]}</text>`;
+    if(id){ const nm=pname(id); s+=`<text x="${x}" y="${y+33}" text-anchor="middle" font-size="11" fill="var(--ink)" font-family="var(--body)">${esc(nm.length>5?nm.slice(0,5)+"…":nm)}</text>`;
+      s+=`<circle cx="${x+16}" cy="${y-16}" r="8" fill="var(--ink)"/><text x="${x+16}" y="${y-16}" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="700" fill="var(--bg)">${sv}</text>`; }
+    s+=`</g>`; });
+  return s+`</svg>`;
+}
+function viewLineups(){
+  let h="";
+  const l=lu();
+  if(!l){
+    const list=[...D.lineups].sort((a,b)=>(b.date||"")>(a.date||"")?1:-1);
+    h+=`<div class="card"><h3>オーダー表</h3>${list.length?`<div class="stack">${list.map(x=>{ const filled=SETS.filter(k=>Object.values(setData(x,k).pos).filter(Boolean).length===9).length; return `<button class="list-btn" data-lu="${esc(x.id)}"><span><b>${esc(x.name)}</b><br><small>${x.date?esc(md(x.date)):"日付なし"}・${filled}/3セット完成</small></span><span class="arrow">›</span></button>`; }).join("")}</div>`:`<p class="muted">まだオーダー表がありません。</p>`}</div>`;
+    if(D.canWrite){ const nt=nextTournament();
+      h+=`<form class="card" id="fl"><h3>新しいオーダー表</h3><label class="f">名前<input type="text" id="lname" maxlength="40" value="${nt?esc(nt.name):""}" placeholder="例：市民大会 1回戦" required></label><label class="f">日付<input type="date" id="ldate" value="${nt?esc(nt.date):""}"></label><p class="err" id="lerr" role="alert"></p><div class="row"><button class="btn" type="submit">作成する</button></div></form>`; }
+    if(!D.roster.length) h+=`<p class="note">先に「名簿」で選手を登録すると、オーダーを組めます。</p>`;
+    return h;
+  }
+  const sd=setData(l,S.luSet); syncServe(sd);
+  const placedN=POS_ORDER.filter(p=>sd.pos[p]).length;
+  h+=`<button class="back" data-luback="1">‹ オーダー表一覧</button><div class="row" style="justify-content:space-between"><h2 style="margin:0">${esc(l.name)}</h2><span class="muted">${l.date?esc(md(l.date)):""}</span></div>`;
+  h+=`<div class="seg" role="group" aria-label="セット">${SETS.map(k=>`<button data-luset="${k}" aria-pressed="${S.luSet===k}">${SET_LABEL[k]}</button>`).join("")}</div>`;
+  h+=`<div class="card court">${lineupCourt(sd,D.canWrite)}<div class="row" style="justify-content:space-between"><span class="muted">${placedN}/9人　右上の黒丸＝サーブ順</span>${D.canWrite&&S.luSet!=="s1"?`<button class="icon-btn" data-copyset="1">${SET_LABEL[SETS[SETS.indexOf(S.luSet)-1]]}と同じにする</button>`:""}</div>${D.canWrite&&!S.luPos?`<p class="muted">ポジションをタップして選手を入れます。</p>`:""}</div>`;
+  if(D.canWrite&&S.luPos){
+    const cur=sd.pos[S.luPos]; const where={}; POS_ORDER.forEach(p=>{ if(sd.pos[p]) where[sd.pos[p]]=p; });
+    const cands=[...D.roster].filter(p=>!S.regOnly||p.reg).sort((a,b)=>(+a.num||9999)-(+b.num||9999));
+    h+=`<div class="card" id="picker"><div class="row" style="justify-content:space-between"><h3>${esc(POS[S.luPos].name)} に入れる選手</h3><button class="icon-btn" data-lupos="${S.luPos}">閉じる</button></div>
+    <label class="check"><input type="checkbox" data-regonly="1" ${S.regOnly?"checked":""}><span>選手登録済みの人だけ表示</span></label>
+    ${cands.length?`<div>${cands.map(p=>`<button class="player" style="width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left" data-assign="${esc(p.id)}"><span class="num">${esc(p.num??"-")}</span><span class="nm"><b>${esc(p.name)}</b><span class="muted">${esc(posLabel(p.pos))}${where[p.id]?`・いま ${SHORT[where[p.id]]==="S"?"セッター":SHORT[where[p.id]]}`:""}</span></span>${cur===p.id?`<span class="tag" style="--c:var(--def);--tbg:var(--def-bg)">選択中</span>`:""}</button>`).join("")}</div>`:`<p class="muted">表示できる選手がいません。チェックを外すか、名簿に追加してください。</p>`}
+    ${cur?`<button class="btn warn" data-unassign="1">このポジションを空ける</button>`:""}</div>`;
+  }
+  h+=`<div class="card"><h3>サーブ順（${SET_LABEL[S.luSet]}）</h3>${sd.serve.length?`<div>${sd.serve.map((id,i)=>{ const pos=POS_ORDER.find(p=>sd.pos[p]===id); return `<div class="player"><span class="num" style="background:var(--ink);color:var(--bg)">${i+1}</span><div class="nm"><b>${esc(pnum(id))}　${esc(pname(id))}</b><span class="muted">${pos?esc(POS[pos].name):""}</span></div>${D.canWrite?`<button class="icon-btn" data-svmove="${i}:-1" aria-label="${i+1}番を上へ" ${i===0?"disabled":""}>↑</button><button class="icon-btn" data-svmove="${i}:1" aria-label="${i+1}番を下へ" ${i===sd.serve.length-1?"disabled":""}>↓</button>`:""}</div>`; }).join("")}</div>`:`<p class="muted">コートに選手を入れると、ここにサーブ順が並びます。</p>`}</div>`;
+  const bench=D.roster.filter(p=>!Object.values(sd.pos).includes(p.id)&&(!S.regOnly||p.reg)).sort((a,b)=>(+a.num||9999)-(+b.num||9999));
+  if(bench.length) h+=`<div class="card"><h3>ベンチ</h3><div class="chips">${bench.map(p=>`<span class="chip">${esc(p.num??"")} ${esc(p.name)}</span>`).join("")}</div></div>`;
+  if(D.canWrite) h+=`<button class="btn warn" data-del-l="${esc(l.id)}">このオーダー表を削除</button>`;
+  return h;
+}
+function posLabel(k){ const o=POS_OPTS.find(x=>x[0]===k); return o?o[1]:"未定"; }
+function viewTeam(){
+  let h = `<div class="seg" role="group" aria-label="表示"><button data-teamsub="roster" aria-pressed="${S.teamSub==="roster"}">名簿</button><button data-teamsub="lineup" aria-pressed="${S.teamSub==="lineup"}">オーダー</button><button data-teamsub="events" aria-pressed="${S.teamSub==="events"}">大会予定</button></div>`;
+  if(D.mode==="loading") return h+`<p class="muted">読み込み中…</p>`;
+  if(D.mode==="local") h += `<p class="note">このプレビューではデータはこの端末にだけ保存されます。共有したページではメンバー全員が同じ内容を見られます。</p>`;
+  if(D.note) h += `<p class="note">${esc(D.note)}</p>`;
+  if(D.err) h += `<p class="err" role="alert">${esc(D.err)}</p>`;
+  if(!D.canWrite) h += `<p class="note">閲覧のみです。編集はキャプテンが共有設定で「参加者」以上にした人ができます。</p>`;
+  if(S.teamSub==="lineup") return h+viewLineups();
+  if(S.teamSub==="roster"){
+    const list=[...D.roster].sort((a,b)=>(+a.num||999)-(+b.num||999));
+    const reg=list.filter(p=>p.reg).length;
+    h += `<div class="card"><div class="row" style="justify-content:space-between"><h3>名簿</h3><span class="muted">${list.length}人・選手登録 ${reg}人</span></div>`;
+    h += list.length ? `<div>${list.map(p=>`<div class="player"><span class="num">${esc(p.num??"-")}</span><div class="nm"><b>${esc(p.name)}</b><span class="muted">${esc(posLabel(p.pos))}</span></div><span class="tag" style="--c:${p.reg?'var(--def)':'var(--muted)'};--tbg:${p.reg?'var(--def-bg)':'var(--court)'}">${p.reg?"登録済":"未登録"}</span>${D.canWrite?`<button class="icon-btn" data-edit-r="${esc(p.id)}">編集</button>`:""}</div>`).join("")}</div>` : `<p class="muted">まだ誰も登録されていません。下のフォームから追加してください。</p>`;
+    h += `</div>`;
+    if(D.canWrite){
+      const e = S.editR?D.roster.find(x=>x.id===S.editR):null;
+      const taken = new Set(D.roster.filter(x=>x.id!==S.editR).map(x=>String(x.num??"")));
+      h += `<form class="card" id="fr"><h3>${e?"選手を編集":"選手を追加"}</h3><p class="why">名前以外の個人情報（連絡先・住所など）は入れないでください。</p>
+      <div class="grid3"><label class="f">背番号<input type="text" id="rnum" maxlength="3" inputmode="numeric" pattern="[0-9]*" value="${e?esc(e.num):""}" required></label><label class="f">名前<input type="text" id="rname" maxlength="20" value="${e?esc(e.name):""}" required></label></div>
+      <div class="grid2"><label class="f">ポジション<select id="rpos">${POS_OPTS.map(([k,l])=>`<option value="${k}" ${e&&e.pos===k?"selected":""}>${l}</option>`).join("")}</select></label><label class="check" style="align-self:end;padding-bottom:8px"><input type="checkbox" id="rreg" ${e&&e.reg?"checked":""}><span>選手登録済み</span></label></div>
+      <p class="err" id="rerr" role="alert"></p>
+      <div class="row"><button class="btn" type="submit">${e?"更新する":"追加する"}</button>${e?`<button class="btn sub" type="button" data-cancel="r">やめる</button><button class="btn warn" type="button" data-del-r="${esc(e.id)}">削除</button>`:""}</div></form>`;
+      h += `<script type="text/plain" id="taken">${[...taken].join(",")}<\/script>`;
+    }
+  } else {
+    const up=upcoming(), ps=past();
+    h += countdown();
+    h += `<div class="card"><h3>これからの予定</h3>${up.length?`<div>${up.map(e=>evRow(e,true)).join("")}</div>`:`<p class="muted">予定はまだありません。年間の大会やエントリー締切を追加してください。</p>`}</div>`;
+    if(ps.length) h += `<button class="list-btn" data-past="1"><span><b>終わった予定</b> <small>${ps.length}件</small></span><span class="arrow">${S.showPast?"−":"＋"}</span></button>${S.showPast?`<div class="card"><div>${ps.map(e=>evRow(e,true)).join("")}</div></div>`:""}`;
+    if(D.canWrite){
+      const e = S.editE?D.events.find(x=>x.id===S.editE):null;
+      h += `<form class="card" id="fe"><h3>${e?"予定を編集":"予定を追加"}</h3>
+      <div class="grid2"><label class="f">開始日<input type="date" id="edate" value="${e?esc(e.date):""}" required></label><label class="f">最終日（複数日のとき）<input type="date" id="eend" value="${e?esc(e.end):""}"></label></div>
+      <label class="f">種類<select id="ekind">${EV_KINDS.map(k=>`<option ${e&&e.kind===k?"selected":""}>${k}</option>`).join("")}</select></label>
+      <label class="f">名前<input type="text" id="ename" maxlength="40" placeholder="例：市民大会 9人制の部" value="${e?esc(e.name):""}" required></label>
+      <div class="grid2"><label class="f">会場<input type="text" id="eplace" maxlength="30" value="${e?esc(e.place):""}"></label><label class="f">エントリー締切<input type="date" id="edl" value="${e?esc(e.deadline):""}"></label></div>
+      <label class="f">メモ（ローカルルールなど）<input type="text" id="ememo" maxlength="60" placeholder="例：サーブ1本、15点2セット先取" value="${e?esc(e.memo):""}"></label>
+      <p class="err" id="eerr" role="alert"></p>
+      <div class="row"><button class="btn" type="submit">${e?"更新する":"追加する"}</button>${e?`<button class="btn sub" type="button" data-cancel="e">やめる</button><button class="btn warn" type="button" data-del-e="${esc(e.id)}">削除</button>`:""}</div></form>`;
+    }
+  }
+  return h;
+}
+
+/* ---------- render & events ---------- */
+function render(){
+  const ae=document.activeElement; const fid=ae&&ae.id&&ae.closest&&ae.closest("form")?ae.id:null; let keep={};
+  document.querySelectorAll("form input,form select").forEach(i=>{ keep[i.id]= i.type==="checkbox"?i.checked:i.value; });
+  const v = {home:viewHome,tactics:viewTactics,skills:viewSkills,practice:viewPractice,team:viewTeam}[S.tab]();
+  $("#app").innerHTML = `<div class="view">${v}</div>`;
+  if(!render.reset){ Object.entries(keep).forEach(([id,val])=>{ const el=document.getElementById(id); if(el){ if(el.type==="checkbox") el.checked=val; else el.value=val; } }); if(fid){ const el=document.getElementById(fid); if(el) el.focus(); } }
+  render.reset=false;
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
+  $("#who").textContent = S.mine ? POS[S.mine].name : "";
+  const q=$("#q"); if(q) q.addEventListener("input",e=>{ S.q=e.target.value; const pos=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(pos,pos); });
+  const p=$("#ppl"); if(p) p.addEventListener("change",e=>{ const n=Math.round(+e.target.value); S.ppl=Math.min(40,Math.max(1,isFinite(n)&&n>0?n:S.ppl)); render(); });
+}
+function freshRender(){ render.reset=true; render(); }
+document.addEventListener("click",e=>{
+  const t = e.target.closest("[data-tab],[data-tsub],[data-form],[data-pos],[data-skill],[data-target],[data-mine],[data-theme],[data-done],[data-ppl],[data-spin],[data-kiso],[data-teamsub],[data-edit-r],[data-edit-e],[data-cancel],[data-del-r],[data-del-e],[data-past],[data-men],[data-lu],[data-luset],[data-lupos],[data-assign],[data-unassign],[data-svmove],[data-copyset],[data-luback],[data-del-l],[data-regonly]");
+  if(!t) return;
+  const d = t.dataset;
+  if(d.done!==undefined){ S.done[d.done]=t.checked; return; }
+  if(d.tab){ S.tab=d.tab; S.skill=null; S.target=null; if(d.teamsub) S.teamSub=d.teamsub; if(d.kiso) S.kiso=d.kiso; window.scrollTo(0,0); return freshRender(); }
+  if(d.tsub) S.tsub=d.tsub;
+  else if(d.form){ S.form=d.form; if(S.sel && !FORM[S.form].pts[S.sel]) S.sel=null; }
+  else if(d.pos) S.sel = S.sel===d.pos?null:d.pos;
+  else if(d.target) S.target = S.target===+d.target?null:+d.target;
+  else if(d.skill!==undefined){ S.tab="skills"; S.skill=d.skill||null; S.target=null; window.scrollTo(0,0); }
+  else if(d.mine){ S.mine = S.mine===d.mine?null:d.mine; try{ S.mine?localStorage.setItem("vb-mine",S.mine):localStorage.removeItem("vb-mine"); }catch(err){} }
+  else if(d.theme){ S.theme=d.theme; S.picked=null; S.men=null; }
+  else if(d.ppl){ S.ppl=Math.min(40,Math.max(1,S.ppl+(+d.ppl))); }
+  else if(d.kiso) S.kiso=d.kiso;
+  else if(d.spin){ return spin(); }
+  else if(d.teamsub){ S.teamSub=d.teamsub; S.editR=S.editE=null; D.err=""; return freshRender(); }
+  else if(d.editR){ S.editR=d.editR; freshRender(); document.getElementById("fr")?.scrollIntoView({behavior:"smooth",block:"start"}); return; }
+  else if(d.editE){ S.editE=d.editE; freshRender(); document.getElementById("fe")?.scrollIntoView({behavior:"smooth",block:"start"}); return; }
+  else if(d.cancel){ if(d.cancel==="r") S.editR=null; else S.editE=null; return freshRender(); }
+  else if(d.delR){ askDelete("roster",d.delR,t); return; }
+  else if(d.delE){ askDelete("events",d.delE,t); return; }
+  else if(d.past) S.showPast=!S.showPast;
+  else if(d.men) S.men=d.men;
+  else if(d.lu){ S.luId=d.lu; S.luSet="s1"; S.luPos=null; window.scrollTo(0,0); }
+  else if(d.luback){ S.luId=null; S.luPos=null; }
+  else if(d.luset){ S.luSet=d.luset; S.luPos=null; }
+  else if(d.lupos){ S.luPos = S.luPos===d.lupos?null:d.lupos; render(); if(S.luPos) document.getElementById("picker")?.scrollIntoView({behavior:"smooth",block:"nearest"}); return; }
+  else if(d.regonly!==undefined){ S.regOnly=t.checked; }
+  else if(d.assign){ const sd=setData(lu(),S.luSet); POS_ORDER.forEach(p=>{ if(sd.pos[p]===d.assign) delete sd.pos[p]; }); sd.pos[S.luPos]=d.assign; S.luPos=null; return writeSet(S.luSet,sd); }
+  else if(d.unassign){ const sd=setData(lu(),S.luSet); delete sd.pos[S.luPos]; S.luPos=null; return writeSet(S.luSet,sd); }
+  else if(d.svmove){ const [i,dir]=d.svmove.split(":").map(Number); const sd=syncServe(setData(lu(),S.luSet)); const j=i+dir; if(j<0||j>=sd.serve.length) return; [sd.serve[i],sd.serve[j]]=[sd.serve[j],sd.serve[i]]; return writeSet(S.luSet,sd); }
+  else if(d.copyset){ const prev=SETS[SETS.indexOf(S.luSet)-1]; return writeSet(S.luSet,setData(lu(),prev)); }
+  else if(d.delL){ askDelete("lineups",d.delL,t); return; }
+  render();
+});
+function askDelete(col,id,btn){
+  if(btn.dataset.armed){ remove(col,id).then(()=>{ if(col==="roster") S.editR=null; else if(col==="events") S.editE=null; else S.luId=null; freshRender(); }); return; }
+  btn.dataset.armed="1"; btn.textContent="もう一度押すと削除"; setTimeout(()=>{ if(btn.isConnected){ delete btn.dataset.armed; btn.textContent="削除"; } },4000);
+}
+function spin(){
+  if(S.spinning) return;
+  const keys=Object.keys(THEMES), n=keys.length, i=Math.floor(Math.random()*n), seg=360/n;
+  const target = 360 - (i*seg + seg/2);
+  const base = S.rot - (S.rot % 360);
+  const next = base + 360*5 + target + (Math.random()-.5)*seg*.6;
+  S.spinning=true; S.picked=null; render();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ const w=document.getElementById("wheel"); if(w) w.style.transform=`rotate(${next}deg)`; S.rot=next; }));
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  setTimeout(()=>{ S.spinning=false; S.picked=keys[i]; S.theme=keys[i]; S.men=null; render(); }, reduce?50:3300);
+}
+document.addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(e.target.id==="fr"){
+    const num=$("#rnum").value.trim(), name=$("#rname").value.trim(), err=$("#rerr");
+    if(num===""||!/^\d{1,3}$/.test(num)){ err.textContent="背番号を3桁までの数字で入れてください。"; return; }
+    if(!name){ err.textContent="名前を入れてください。"; return; }
+    const taken=(document.getElementById("taken")?.textContent||"").split(",");
+    if(taken.includes(num)){ err.textContent=`背番号${num}はすでに使われています。`; return; }
+    const ok = await save("roster",S.editR,{num:num,name,pos:$("#rpos").value,reg:$("#rreg").checked});
+    if(ok){ S.editR=null; freshRender(); }
+  }
+  if(e.target.id==="fl"){
+    const name=$("#lname").value.trim(); if(!name){ $("#lerr").textContent="オーダー表の名前を入れてください。"; return; }
+    const id = await save("lineups",null,{name,date:$("#ldate").value,sets:{}});
+    if(id){ S.luId=id; S.luSet="s1"; S.luPos=null; freshRender(); window.scrollTo(0,0); }
+  }
+  if(e.target.id==="fe"){
+    const date=$("#edate").value, name=$("#ename").value.trim(), err=$("#eerr");
+    if(!date){ err.textContent="日付を選んでください。"; return; }
+    if(!name){ err.textContent="予定の名前を入れてください。"; return; }
+    const end=$("#eend").value;
+    if(end&&end<date){ err.textContent="最終日は開始日より後の日付にしてください。"; return; }
+    const ok = await save("events",S.editE,{date,end:end&&end>date?end:"",kind:$("#ekind").value,name,place:$("#eplace").value.trim(),deadline:$("#edl").value,memo:$("#ememo").value.trim()});
+    if(ok){ S.editE=null; freshRender(); }
+  }
+});
+document.addEventListener("input",e=>{ if(e.target.closest("form")){ const er=e.target.closest("form").querySelector(".err"); if(er) er.textContent=""; } });
+document.addEventListener("keydown",e=>{ const g=e.target.closest&&e.target.closest("[data-pos],[data-target],[data-lupos]"); if(g&&g.tagName!=="BUTTON"&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); g.dispatchEvent(new MouseEvent("click",{bubbles:true})); }});
+render();
+initData();
+</script>
+</body>
+</html>
