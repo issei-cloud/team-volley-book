@@ -503,7 +503,7 @@ function exportJSON(){ return JSON.stringify({app:"team-volley-book",version:1,e
 function dataCard(){
   return `<details class="card" id="xfer" ${S.xferOpen?"open":""}><summary style="cursor:pointer;font-weight:700">データの受け渡し</summary>
   <p class="muted">名簿・オーダー・大会予定を1つのファイルにまとめて、別の端末やメンバーに渡せます。</p>
-  <div class="row"><button class="btn sub" data-export="file">ファイルに書き出す</button><button class="btn sub" data-export="copy">文字でコピー</button></div>
+  <div class="row">${STANDALONE?`<button class="btn sub" data-export="file">ファイルに書き出す</button>`:""}<button class="btn sub" data-export="copy">文字でコピー</button></div>
   ${S.xferMsg?`<p class="muted" role="status">${esc(S.xferMsg)}</p>`:""}
   ${D.canWrite?`<label class="f">ファイルから読み込む<input type="file" id="ximport" accept="application/json,.json,.txt"></label>
   <label class="f">または、コピーした文字を貼り付けて読み込む<textarea id="xpaste" placeholder='{"app":"team-volley-book", ...}'></textarea></label>
