@@ -117,6 +117,11 @@ label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mu
 .num{font-family:var(--display);font-size:18px;min-width:44px;padding:0 6px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--court);font-variant-numeric:tabular-nums;flex:none}
 .player{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 .player:first-child{border-top:0}
+.svrow{background:var(--surface);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;position:relative}
+.svrow .grip{color:var(--muted);font-size:18px;cursor:grab;touch-action:none}
+.svrow.lift{z-index:3;box-shadow:0 8px 20px rgba(0,0,0,.18);border-radius:10px;transition:none}
+.svrow.shift{transition:transform .15s ease}
+@media (prefers-reduced-motion: reduce){.svrow.shift{transition:none}}
 .player .nm{flex:1;min-width:0}
 .player .nm b{display:block;overflow-wrap:anywhere}
 .ev{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
@@ -164,6 +169,24 @@ const FORM = {
   side:{label:"サイド攻撃",note:"相手レフトの攻撃。ライト・右Cの2枚ブロック、左C・中衛・後Lで三角形。",pts:{RC:[220,24],R:[262,24],S:[170,52],L:[38,62],LC:[105,80],M:[180,112],BL:[62,228],BC:[150,255],BR:[245,222]},block:["RC","R"],tri:[["LC","M","BL"]]},
   center:{label:"センター攻撃",note:"左C・S・右Cの3枚ブロック。中衛を頂点に左右2つの三角形（案）。",pts:{LC:[108,24],S:[150,24],RC:[192,24],L:[38,88],M:[150,98],R:[262,88],BL:[52,225],BC:[150,258],BR:[248,225]},block:["LC","S","RC"],tri:[["L","M","BL"],["R","M","BR"]]}
 };
+const PATTERNS = [
+  {id:"333",name:"3-3-3",kind:"バランス型",ours:false,
+   pts:[["前L",60,40,"atk"],["前C",150,40,"atk"],["前R",240,40,"atk"],["中L",60,140,"def"],["S",150,140,"set"],["中R",240,140,"def"],["後L",60,240,"def"],["後C",150,240,"def"],["後R",240,240,"def"]],
+   use:"人数・経験がそろわないチーム、初心者が多いとき",
+   feat:["前・中・後に3人ずつ並ぶ、9人制のもっとも基本の形","守備範囲が均等で、自分のエリアがわかりやすい","セッターは中衛センターに置くことが多い。前衛3人が全員アタッカーとして残り、ブロックが誰に付くか絞りにくい"],
+   care:["前衛が3人なので、ブロックは2枚が中心","中衛どうし・中衛と後衛の間の約束を決めておかないとお見合いが起きやすい"]},
+  {id:"423",name:"4-2-3",kind:"守備型",ours:false,
+   pts:[["前L",45,40,"atk"],["前C",115,40,"atk"],["S",185,40,"set"],["前R",255,40,"atk"],["中L",100,140,"def"],["中R",200,140,"def"],["後L",60,240,"def"],["後C",150,240,"def"],["後R",240,240,"def"]],
+   use:"高さがない、守りを固めたいとき",
+   feat:["前衛4人の後ろに、つなぎ役の中衛（ハーフ）2人と後衛3人","サイド攻撃には2枚ブロック。ブロックに入らない前衛1人が下がってフェイント・インナーをカバー","サーブレシーブでは前衛サイドの1人をネット際に残し、乱れたときのトスを補う"],
+   care:["レシーバーを増やす分、ブロックの枚数は少なめ","中衛2人の左右の分担を決めておく"]},
+  {id:"513",name:"5-1-3",kind:"攻撃型（今の主流）",ours:true,
+   pts:[["前L",35,40,"atk"],["前C",92,40,"atk"],["S",150,40,"set"],["前C",208,40,"atk"],["前R",265,40,"atk"],["中C",150,140,"def"],["後L",60,240,"def"],["後C",150,240,"def"],["後R",240,240,"def"]],
+   use:"前衛に高さがあり、ブロックが得意な選手がそろうとき",
+   feat:["左右の中衛が前衛に上がり、前衛5人（セッター含む）・中衛センター1人・後衛3人","3枚ブロックをつけやすい","中衛センターがフェイントとつなぎの要になる"],
+   care:["3枚ブロックでも1回で決まらないことが多いので、ブロックフォローから攻撃に切り返すカバーの練習が必須","中衛が1人なので、その左右（コートの中間）は後衛が前に出て守る約束が要る"]}
+];
+const PATTERN_SRC = [["江上由美「ディグのフォーメーション」","https://egami-mamasanvolley-jyoutatu-gokui.com/mamasanvolleyball2/volleyball34.html"],["江上由美「サーブレシーブのフォーメーション」","https://egami-mamasanvolley-jyoutatu-gokui.com/mamasanvolleyball2/volleyball14.html"],["バレーボールのフォーメーション（6人制と9人制）","https://www.crownregencyresort-boracay.com/volleyball-formation/"],["ママさんバレーポジションについて","http://volleyball-navi.com/kiso/torikumi/position.html"],["9人制バレーのトスの上げ方（abc-volleyball）","https://abc-volleyball.com/nine-volleyball-setting/"]];
 const RULES = [
   {h:"声は3種類だけ",b:["取る「オーライ」","譲る「任せた」","警戒「フェイント！」"]},
   {h:"迷ったら：中衛 → 後ろ → 先に声",b:["中衛が関わる境界は中衛","前後なら後ろの人","それでも迷えば先に声を出した人"]},
@@ -176,11 +199,17 @@ const RULES = [
 const CARD_GROUPS = [
   {h:"サーブ",ids:["floater","jfloat","jump","under","serveTarget"]},
   {h:"攻撃",ids:["spike","toss"]},
-  {h:"守備",ids:["basic","recv","dig","block"]}
+  {h:"守備",ids:["basic","recv","dig","block"]},
+  {h:"指導",ids:["myth"]}
 ];
 const CARDS = {
-  basic:{t:"基本動作",sub:"スプリットステップ・目線・面",point:"すべてのレシーブの土台。打つ瞬間に準備が終わっているか。",rows:[["反応が遅れる","相手が打つ瞬間に足が止まっている","打つ瞬間にトン"],["コースが読めない","ボールだけを目で追っている","トスが上がったら、打つ人を見る"],["レシーブが散らばる","腕を振って当てている","腕を振らずに、面を向けるだけ"]],
-    tips:[{h:"スプリットステップ",b:["相手が打つ瞬間に数cm跳び、両足同時に着地して動き出す","足は肩幅より少し広く、かかとを少し浮かせる"]},{h:"目線",b:["ボール → セッター → アタッカー（助走・肩・腕）→ ボール","ボールを凝視せず、相手全体を見る"]},{h:"面の作り方（アンダー）",b:["親指をそろえて組み、肘を伸ばす","手首と肘の間の平らな部分で当てる","面を返したい方向に向ける。横のボールは肩を入れて面だけでも向ける"]}]},
+  basic:{t:"基本動作",sub:"スプリットステップ・目線・面",point:"すべてのレシーブの土台。打つ瞬間に準備が終わっているか。",rows:[["反応が遅れる","相手が打つ瞬間に足が止まっている","打つ瞬間にトン"],["コースが読めない","ボールだけを目で追っている","トスが上がったら、打つ人を見る"],["軌道を見失う","頭が上下に動いている","頭は固定、目玉で追う"],["レシーブが散らばる","腕を振って当てている","腕を振らずに、面を止めるだけ"],["狙った方向に返らない","面を返したい方向にそのまま向けている","面は来た方向とセッターの真ん中へ"]],
+    tips:[{h:"スプリットステップ",b:["相手が打つ瞬間に数cm跳び、両足同時に着地して動き出す","足は肩幅より少し広く、かかとを少し浮かせる"]},
+      {h:"目線",b:["ボール → セッター → アタッカー（助走・肩・腕）→ ボール","ボールを凝視せず、相手全体を見る"]},
+      {h:"目線と頭の固定",src:1,b:["頭を上下に動かさず、目玉の動きだけでボールを追う。頭が動くと周りの景色との比較ができず、軌道を見失う","顎を引いて上目づかいにし、手元とボールを視界の端（周辺視野）で捉える"]},
+      {h:"面の作り方（アンダー）",b:["親指をそろえて組み、肘を伸ばす","手首と肘の間の平らな部分で当てる"]},
+      {h:"面のコツ",src:1,b:["肘の内側を上に向けて前腕を平らにし、肩甲骨を軽く引き上げて面を広く取る","腕を大きく振らず、面を平行移動させて、当たる瞬間に力を入れて止める","高さの調整は腕ではなく、膝と肩甲骨で行う"]},
+      {h:"面の向き",src:1,b:["面をセッターに直接向けても返らない","ボールが飛んでくる方向とセッターの方向の「真ん中（二等分線）」に面を向ける","横のボールは肩を入れて、この向きを作る"]}]},
   floater:{t:"フローターサーブ",sub:"チームの基本サーブ",point:"1本制なので「入れる → コース → 強さ」の順。",rows:[["ネットにかかる","トスが低い、打点が下がっている","トスは少し高めに、打点を上げて"],["奥にアウトする","下からこすり上げている、体が後ろに倒れる","当てて止める、体重は前へ"],["左右にぶれる","トスの位置が毎回違う","トスは毎回同じ場所に"],["揺れない","手首を使って回転がかかる","手首を固めて、真ん中を叩く"],["本番で入らない","緊張で動きが毎回変わる","いつもの手順で打つ"]],
     tips:[{h:"打ち方",b:["打つ手と反対の足を前に出し、体は狙う方向へ","トスは打つ手の肩の前・少し高めに、回転をかけずに上げる","手のひらの硬い部分でボールの中心を押し出し、当てたら止める"]}]},
   jfloat:{t:"ジャンプフローター",sub:"高い打点から揺らす",point:"高さで角度がつく分、揺れが大きくなる。トスの安定が9割。",rows:[["タイミングが合わない","トスの高さ・位置が毎回違う","トスは前方に、毎回同じ高さで"],["ネットにかかる","跳ぶのが早く、落ちながら打っている","トスを見てから踏み切る"],["奥にアウトする","手首を使って押し込んでいる","当てて止める、振り抜かない"],["揺れない","回転がかかっている","手首を固めて、真ん中を叩く"],["エンドラインを踏む","踏み切り位置が近い","踏み切りはラインから余裕をもって"]],
@@ -190,23 +219,33 @@ const CARDS = {
   under:{t:"アンダーサーブ",sub:"一番確実な1本",point:"確実に入れることを最優先にする場面の切り札。",rows:[["ネットにかかる","腕の振りが小さい、当たる位置が上","後ろから大きく振り子のように"],["アウトする","強く打ちすぎ、体が後ろに倒れる","力は7割、体重は前へ"],["左右にぶれる","腕がまっすぐ振れていない","振り終わりを狙う方向へ"],["当たり損ねる","ボールを放り上げている","ボールは持った手の上で、離すだけ"]],
     tips:[{h:"打ち方",b:["ボールを持つ手は腰の高さで体の前に","打つ手は後ろから前へ、振り子のように振る","手のひらの付け根（または軽く握った拳）で、ボールの下側を打つ"]},{h:"使いどころ",b:["初心者、緊張する場面、絶対にミスできない終盤"]}]},
   serveTarget:{t:"サーブの狙い所",sub:"図で見る、どこを狙うか",point:"9人制の相手は1列目＋後衛3人の形が多い。崩す場所はある程度決まっている。",fig:true,rows:[],tips:[{h:"1本制での注意",b:["ライン際は狙いすぎない。ラインから1mほど内側を目標にする","まず入れる。狙いは「人」と「間」が優先、ライン際は最後"]}]},
-  spike:{t:"スパイク",sub:"コース打ち・ブロックアウト・助走",point:"最後の2歩を速く強く。打つ前にコースを決める。",rows:[["タイミングが合わない","走り出しが早すぎる","トスが上がるのを見てから入る"],["ネットにかかる","打点が前すぎる、真下に叩こうとしている","奥を狙って"],["アウトする","ボールの下を叩いている","ボールの上を叩く、手首をかぶせる"],["ネットに触れる","前に流れながら跳んでいる","前ではなく、真上に跳ぶ"],["ブロックに止められる","コースが毎回同じ","コースを見て、打ち分ける"]],
+  spike:{t:"スパイク",sub:"フォーム・コース打ち・ブロックアウト・助走",point:"打ち下ろすより、ブロックの上を通して奥へ深く強く。最後の2歩を速く強く。",rows:[["タイミングが合わない","トスに合わせてもらおうとしている","自分からトスに合わせに行く"],["ネットにかかる","打点が前すぎる、真下に叩こうとしている","奥を狙って"],["アウトする","ボールの下を叩いている","ボールの上を叩く、手首をかぶせる"],["ミートが安定しない","振り始めの腕の形がばらばら","手の甲を耳の横に向けて振り始める"],["打った後に足が後ろに残る","打点が後ろすぎる、または手打ち","ボールを体の右前で迎えに行く"],["ネットに触れる","前に流れながら跳んでいる","前ではなく、真上に跳ぶ"],["ブロックに止められる","コースが毎回同じ","コースを見て、打ち分ける"]],
     tips:[
-      {h:"コース打ちのコツ",b:["コースは助走の向きで作る。体の正面に打つのが一番強い","クロスは外から内へ入り、ボールの外側を叩く。ストレートはボールの内側に体を入れ、サイドラインと平行に振る","最後の調整は手首。同じフォームから打ち分けると読まれにくい"]},
+      {h:"フォームと打点",src:1,b:["ボールが落ちてくるのを待たず、体の右前の最高到達点へ自分から迎えに行く","手の甲を自分の顔・耳の横に向けた形から振り始めると、ミートとコントロールが安定する","打った後に体重や足が前へ流れるのが正解。足が後ろに残るなら打点が後ろすぎるか、手打ちになっている","床に叩きつけるスパイクは試合では使いにくい。ブロックの上を通し、エンドライン近くへ深く強く打つ"]},
+      {h:"タイミングの合わせ方",src:1,b:["セッターに合わせてもらうのではなく、スパイカーが助走でトスの軌道に合わせに行く","助走のリズムは「タンタン・タタン」。声に出して練習する","ジャンプは常に全力。タイミングを合わせようとして緩めると、空中にいる時間が短くなって逆効果"]},
+      {h:"コース打ちのコツ",b:["体の正面に打つのが一番強い。コースは助走の向きと体の入れ方で作る","最後の調整は手首。同じフォームから打ち分けると読まれにくい"]},
+      {h:"ストレートとインナーの打ち方",src:1,b:["ストレート：体をストレートに向けず、クロス方向に向けたまま。左手を高く残し、耳の横で少し溜めて叩く","インナー：体をひねらず、ボールの右側（1歩内側）に体を入れて捕らえる位置を変える。2枚目のブロックの脇を抜く角度ができる"]},
       {h:"長いコースを打つコツ",b:["一番長いのはクロスの対角の奥","打点を高く前に取り、ボールの後ろ〜少し上を叩いて手首でドライブをかける","叩きつけるほど短くなる。基礎練の「ドライブ」と同じ感覚で、相手の足元より奥へ","ネットから離れたトスや2段トスは、長いコースが安全"]},
       {h:"ブロックアウトの狙い方",b:["狙うのはブロッカーの外側の手（サイドライン側）の指先〜手の外側","ブロックが完成していて抜けないとき、トスがネットに近いときに有効","強さより当てる場所。打点を少し高めに取り、外へ向けて振る"]}
     ],
-    timing:[["オープン","高い山なり","トスの頂点付近で助走開始。待ってから入る","トスが上がった瞬間に走らない"],["平行","速く低く、サイドへ","セッターがボールに触る頃に助走開始。トスを追って外へ","踏み切り位置はアンテナ寄り"],["Aクイック","セッターのすぐ前に低く","セッターが触る前に助走を始め、トスとほぼ同時に踏み切る","先に跳んで待ち、セッターに合わせてもらう"]]},
-  toss:{t:"オーバートス・2段トス",sub:"ハンドリング・距離の調整・バックトス",point:"距離は腕ではなく膝で調整する。2段トスは高さ優先、アンダーでもOK。",rows:[["ボールに回転がかかる","手のひらで触っている","指の腹で、おでこの前で"],["遠くへ飛ばない","腕だけで上げている","膝を使って、全身で押し出す"],["方向がぶれる","体が上げる方向を向いていない","上げる方向におへそを向ける"],["2段トスが低い・近い","速さや距離を欲張っている","高く、ネットから離して"],["2段トスが間に合わない","判断と移動が遅い","トス！と言って先に入る"]],
+    timing:[["オープン","高い山なり","セッターが触る瞬間に1歩目（右足）を出し、トスの頂点に2歩目（左足）を合わせる","高い2段トスは早まらず、落ちてくる軌道を見て助走の速さを調整"],["平行","速く低く、サイドへ","セッターが触る瞬間に、2歩目（左足）がもう出ている状態で入る","トスを追って外へ。踏み切りはアンテナ寄り"],["Aクイック","セッターのすぐ前に低く","セッターが触る前に助走を始め、トスとほぼ同時に踏み切る","先に跳んで待ち、セッターに合わせてもらう"]]},
+  toss:{t:"オーバートス・2段トス",sub:"セッターの体の使い方・ハンドリング・距離の調整・バックトス",point:"セッターの一番の役目は、アタッカーが打ちやすいトスを上げること。距離は腕ではなく膝で調整する。",rows:[["ボールに回転がかかる","手のひらで触っている","指の腹で、おでこの前で"],["遠くへ飛ばない","腕だけで上げている","膝を使って、全身で押し出す"],["方向がぶれる","指先が目標を向いていない","指を目標へまっすぐ押し出す"],["トスがネット側に流れる","体の軸がぶれている","右足・右手で壁を作る"],["トスが安定しない","上げた後すぐ手を下ろしている","上げたら両手を空中に残す"],["2段トスが低い・近い","速さや距離を欲張っている","高く、ネットから離して"],["2段トスが間に合わない","判断と移動が遅い","トス！と言って先に入る"]],
     tips:[
+      {h:"セッターの体の使い方",src:1,b:["ボールの下に入るときは、右足・右手を基準に軸（壁）を作り、体やトスがネット側に流れないようにする","最初から上げる方向を向かず、まずパスが飛んでくる方向（レフト側）に体を向けてボールに入り、そこから上げる","ジャンプトスは右足を軸に踏み込み、空中でのぶれを抑える","トスを上げた後は、両手を空中に残す（止める）。トスの精度が安定する","指先を目標に向けてまっすぐ押し出す"]},
       {h:"ハンドリングのコツ",b:["両手の親指と人差し指で三角形を作り、ボールの形に指を広げる","指の腹（第1〜第2関節）で包む。手のひらはつけない","おでこの前上で受け、膝・肘・手首を同時に伸ばして送り出す","左右の手の力を均等に。片方が強いと回転がかかる"]},
       {h:"短い距離のトス",b:["膝の曲げ伸ばしは小さく、指と手首中心で柔らかく","ボールを持ちすぎない。触ったらすぐ離す","速攻のトスはセッターの近くに低く、毎回同じ場所へ"]},
       {h:"長く伸ばしたいとき",b:["膝を深く曲げ、下半身から押し出す","上げる方向へ一歩踏み出して体重を移す","腕を最後まで伸ばし切る。軌道は少し山なりに","力は「脚 → 体 → 腕 → 指」の順に伝える"]},
-      {h:"バックトス",b:["正面トスと同じ構え・同じ位置で触る（読まれにくい）","額の上で捉え、胸を張って腕を真上〜頭の後ろへ押し出す","腰を反らさない。手首を後ろに返して方向を出す","基礎練の「真下にバウンドさせて入るバックトス」で感覚を作る"]}
+      {h:"バックトス",b:["正面トスと同じ構え・同じ位置で触る（読まれにくい）","額の上で捉え、手首を後ろに返して方向を出す","基礎練の「真下にバウンドさせて入るバックトス」で感覚を作る"]},
+      {h:"バックトスを伸ばすコツ",src:1,b:["腕の力で引いたり、お腹を突き出したりしない","肩甲骨を後ろへスライドさせて押し出す。トスが垂れずに最後まで伸びる"]}
     ]},
-  recv:{t:"レセプション",sub:"サーブレシーブ",point:"返す目標はネットから少し離れたセッターの頭上。",rows:[["後ろに飛ぶ","腕を振っている","振らない、面で止める"],["セッターに返らない","面が返したい方向を向いていない","面をセッターに向けて"],["横のボールを弾く","足が止まっている","足で動いて、肩を入れる"],["揺れるボールに合わない","腕を組むのが早すぎる","腕は直前に組む、足で合わせる"],["遅れる","構えが高い","低く、打つ瞬間にトン"]]},
-  dig:{t:"強打レシーブ",sub:"ディグ",point:"重心を低く、膝の角度を変えずに受ける。",rows:[["弾いてコート外へ","勢いを吸収できていない","面を上に向けて、勢いを殺す"],["反応できない","構えが高い、準備が遅い","低く、打つ瞬間に止まって構える"],["正面以外が取れない","足が出ていない","一歩出して、面を向ける"],["顔の近くで腕が出ない","アンダーにこだわっている","顔の前は手で"],["立ち位置が悪い","ブロックを見ていない","ブロックの陰に入らない"]]},
-  block:{t:"ブロック",sub:"ワンタッチも成功",point:"塞ぐコースを後ろに声で伝える。",rows:[["手とネットの間に落ちる","手がネットから離れている","ネットに沿って、手を前に出す"],["指を弾かれてアウト","両手の間が開いている","指を開いて固める、間を閉める"],["跳ぶのが早い","アタッカーより先に跳んでいる","アタッカーが跳んでから跳ぶ"],["移動が間に合わない","足の運びが遅い","止まってから真上に跳ぶ"],["ネットに触れる","前に流れている","真上に跳ぶ"]]}
+  recv:{t:"レセプション",sub:"サーブレシーブ",point:"返す目標はネットから少し離れたセッターの頭上。手は下に入ってから組む。",rows:[["後ろに飛ぶ","腕を振っている","振らない、面で止める"],["セッターに返らない","面をセッターに直接向けている","面は来た方向とセッターの真ん中へ"],["横のボールを弾く","足が止まっている","足で動いて、肩を入れる"],["揺れるボールに合わない、弾く","最初から手を組んでいて足が出ない","構えは胸の前、下に入ってから組む"],["遅れる","構えが高い","低く、打つ瞬間にトン"]],
+    tips:[{h:"構え",src:1,b:["待っている間や移動する前から手を組まない。足が出にくくなり、変化するボールに対応できず弾く原因になる","胸の前で肘を90度くらいにしてリラックスして構え、ボールの下に入ってから手を組む"]},
+      {h:"面と目線",src:1,b:["面は、ボールが来る方向とセッターの方向の真ん中に向ける","頭は動かさず、目玉だけでボールを追う"]}]},
+  dig:{t:"強打レシーブ",sub:"ディグ",point:"重心を低く、膝の角度を変えずに受ける。前のボールは「打たれる前の位置」で決まる。",rows:[["弾いてコート外へ","勢いを吸収できていない","面を上に向けて、勢いを殺す"],["反応できない","構えが高い、準備が遅い","低く、打つ瞬間に止まって構える"],["前に落ちる強打に届かない","打たれてから前に出ようとしている","最初からもう一歩前で構える"],["顔の近くで腕が出ない","アンダーにこだわっている","顔の前は手で"],["立ち位置が悪い","ブロックを見ていない","ブロックの陰に入らない"]],
+    tips:[{h:"「一歩出せ」ではなく「一歩前で構える」",src:1,b:["スパイクが床に落ちるまで約0.3〜0.4秒。人が反応して前に一歩出るには約0.5秒かかる","打たれた後に前へ足を出すのは間に合わない。打たれる前の段階で、最初からもう一歩前で構えておく"]}]},
+  block:{t:"ブロック",sub:"ワンタッチも成功",point:"塞ぐコースを後ろに声で伝える。",rows:[["手とネットの間に落ちる","手がネットから離れている","ネットに沿って、手を前に出す"],["指を弾かれてアウト","両手の間が開いている","指を開いて固める、間を閉める"],["跳ぶのが早い","アタッカーより先に跳んでいる","アタッカーが跳んでから跳ぶ"],["移動が間に合わない","足の運びが遅い","止まってから真上に跳ぶ"],["ネットに触れる","前に流れている","真上に跳ぶ"]]},
+  myth:{t:"よくある思い込み",sub:"指導で直したい5つのズレ",point:"上達の近道は、思い込みと実際の動きのズレを言葉にして直すこと。",rowsLabel:"思い込み → 正しくは → 声かけ",rows:[["面はセッターに向ける","来た方向とセッターの真ん中に向ける","面は真ん中へ"],["スパイクは打ち下ろすもの","ブロックの上を通して奥へ深く強く","奥へ深く"],["打たれてから一歩出す","打たれる前に一歩前で構えておく","最初から一歩前"],["サーブレシーブは早めに手を組む","下に入ってから組む","構えは胸の前"],["トスはセッターに合わせてもらう","スパイカーがトスに合わせに行く","自分から合わせる"]],
+    tips:[{h:"失敗の原因を切り分ける",src:1,b:["失敗したら「面の角度・打点・目線・位置取り・助走のタイミング」のどこが原因かをはっきりさせる","原因の部分だけを取り出して反復練習する"]}]}
 };
 const TARGETS = [
   {n:1,x:122,y:95,r:16,h:"人と人の間",b:"1列目の選手どうしの間。どちらが取るか迷わせて、お見合いや弾きを誘う。",tag:"基本"},
@@ -381,7 +420,8 @@ function viewHome(){
   return h;
 }
 function viewTactics(){
-  let h = `<div class="seg" role="group" aria-label="表示"><button data-tsub="form" aria-pressed="${S.tsub==="form"}">配置図</button><button data-tsub="rules" aria-pressed="${S.tsub==="rules"}">判断ルール</button></div>`;
+  let h = `<div class="seg" role="group" aria-label="表示"><button data-tsub="form" aria-pressed="${S.tsub==="form"}">配置図</button><button data-tsub="rules" aria-pressed="${S.tsub==="rules"}">判断ルール</button><button data-tsub="patterns" aria-pressed="${S.tsub==="patterns"}">他のパターン</button></div>`;
+  if(S.tsub==="patterns") return h + viewPatterns();
   if(S.tsub==="rules") return h + `<p class="muted">チーム全員の約束です。迷ったらここに戻る。</p>` + RULES.map((r,i)=>`<div class="card rule"><span class="rule-num">${i+1}</span><div><h3>${esc(r.h)}</h3><ul class="clean">${r.b.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div></div>`).join("");
   const f = FORM[S.form];
   h += `<div class="seg" role="group" aria-label="場面">${Object.entries(FORM).map(([k,v])=>`<button data-form="${k}" aria-pressed="${S.form===k}">${v.label}</button>`).join("")}</div>`;
@@ -389,9 +429,23 @@ function viewTactics(){
   h += S.sel ? `<div class="card">${roleBlock(S.sel)}</div>` : `<p class="muted">選手をタップすると役割が出ます。</p>`;
   return h;
 }
+function patternSVG(pt){
+  let s=`<svg viewBox="0 0 300 280" role="img" aria-label="${pt.name}の配置図"><rect x="1" y="1" width="298" height="278" rx="4" fill="var(--court)" stroke="var(--line)"/><rect x="0" y="0" width="300" height="5" fill="var(--ink)"/>`;
+  s+=`<line x1="10" y1="90" x2="290" y2="90" stroke="var(--line)" stroke-dasharray="4 4"/><line x1="10" y1="190" x2="290" y2="190" stroke="var(--line)" stroke-dasharray="4 4"/>`;
+  pt.pts.forEach(([l,x,y,g])=>{ const G=GRP[g]; s+=`<circle cx="${x}" cy="${y}" r="19" fill="${G.bg}" stroke="${G.c}" stroke-width="1.4"/><text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="700" fill="${G.c}" font-family="var(--body)">${l}</text>`; });
+  return s+`</svg>`;
+}
+function viewPatterns(){
+  let h=`<p class="muted">チームの今の配置はそのまま。参考として、9人制でよく使われる編成を並べています。数字は「前衛-中衛-後衛」の人数です。</p>`;
+  h+=PATTERNS.map(pt=>`<div class="card court"><div class="row" style="justify-content:space-between"><h3>${pt.name}　<span class="muted" style="font-weight:400">${esc(pt.kind)}</span></h3>${pt.ours?`<span class="tag" style="--c:var(--def);--tbg:var(--def-bg)">うちの配置に近い</span>`:""}</div>${patternSVG(pt)}
+  <p><b>向いている場面</b>　${esc(pt.use)}</p><h4>特徴</h4><ul class="clean">${pt.feat.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><h4>気をつけること</h4><ul class="clean">${pt.care.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`).join("");
+  h+=`<div class="card"><h4>選び方の目安</h4><ul class="clean"><li>攻撃的なチームほど前衛を多く、守備型のチームほど後ろを多くする</li><li>9人制はローテーションがないので、配置を決めたら役割を固定して練習する</li><li>うちのチーム（セッター＋前衛4・中衛1・後衛3）は5-1-3型。高さで勝てない相手には4-2-3に切り替える選択肢もある</li></ul></div>`;
+  h+=`<div class="card"><h4>参考</h4><ul class="clean">${PATTERN_SRC.map(([t,u])=>`<li><a href="${u}" target="_blank" rel="noopener" style="color:var(--ink)">${esc(t)}</a></li>`).join("")}</ul></div>`;
+  return h;
+}
 function tipsBlock(c){
   if(!c.tips) return "";
-  return `<div class="card tips">${c.tips.map(t=>`<h4>${esc(t.h)}</h4><ul class="clean">${t.b.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`).join("")}</div>`;
+  return `<div class="card tips">${c.tips.map(t=>`<h4>${esc(t.h)}${t.src?` <span class="tag" style="--c:var(--accent-ink);--tbg:var(--accent)">動画まとめ</span>`:""}</h4><ul class="clean">${t.b.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`).join("")}</div>`;
 }
 function viewSkills(){
   if(S.skill){
@@ -403,9 +457,10 @@ function viewSkills(){
       h += t ? `<div class="card"><div class="row"><span class="num">${t.n}</span><div><span class="tag" style="--c:var(--accent-ink);--tbg:var(--accent)">${t.tag}</span><h3>${esc(t.h)}</h3></div></div><p>${esc(t.b)}</p></div>` : `<div class="stack">${TARGETS.map(t=>`<button class="sym-row" data-target="${t.n}"><b>${t.n}. ${esc(t.h)}</b><span class="c">${esc(t.b)}</span></button>`).join("")}</div>`;
       h += `<div class="card"><h4>おすすめの順番（1本制）</h4><ol class="clean"><li>まず入れる（全員）</li><li>人と人の間、1列目と後衛の間を狙う</li><li>慣れてきたら相手エースを狙う</li><li>ライン際は余裕があるときだけ</li></ol></div>`;
     }
-    if(c.timing) h += `<div class="card"><h4>助走のタイミング</h4><div style="overflow-x:auto"><table class="t"><tr><th>攻撃</th><th>トス</th><th>助走開始・踏み切り</th></tr>${c.timing.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}<br><span class="why">${esc(r[3])}</span></td></tr>`).join("")}</table></div><p class="why">セッターのトスの速さで変わるので、チームのセッターと合わせて微調整する。</p></div>`;
+    if(c.timing) h += `<div class="card"><h4>助走のタイミング</h4><div style="overflow-x:auto"><table class="t"><tr><th>攻撃</th><th>トス</th><th>助走開始・踏み切り</th></tr>${c.timing.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}<br><span class="why">${esc(r[3])}</span></td></tr>`).join("")}</table></div><p class="why">足は右利きの場合（左利きは左右逆）。オープン・平行のタイミングは動画まとめより。セッターのトスの速さで変わるので、チームのセッターと合わせて微調整する。</p></div>`;
     h += tipsBlock(c);
-    if(c.rows.length) h += `<p class="muted">症状 → 原因 → 声かけ</p><div class="stack">${c.rows.map(r=>`<div class="sym-row"><b>${esc(r[0])}</b><span class="c">${esc(r[1])}</span><span><span class="cue">「${esc(r[2])}」</span></span></div>`).join("")}</div>`;
+    if(c.tips&&c.tips.some(t=>t.src)) h += `<p class="why">「動画まとめ」はキャプテンが集めたYouTube動画の要約から追加した内容です。</p>`;
+    if(c.rows.length) h += `<p class="muted">${esc(c.rowsLabel||"症状 → 原因 → 声かけ")}</p><div class="stack">${c.rows.map(r=>`<div class="sym-row"><b>${esc(r[0])}</b><span class="c">${esc(r[1])}</span><span><span class="cue">「${esc(r[2])}」</span></span></div>`).join("")}</div>`;
     return h;
   }
   const q = S.q.trim();
@@ -492,7 +547,7 @@ function viewLineups(){
     ${cands.length?`<div>${cands.map(p=>`<button class="player" style="width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left" data-assign="${esc(p.id)}"><span class="num">${esc(p.num??"-")}</span><span class="nm"><b>${esc(p.name)}</b><span class="muted">${esc(posLabel(p.pos))}${where[p.id]?`・いま ${SHORT[where[p.id]]==="S"?"セッター":SHORT[where[p.id]]}`:""}</span></span>${cur===p.id?`<span class="tag" style="--c:var(--def);--tbg:var(--def-bg)">選択中</span>`:""}</button>`).join("")}</div>`:`<p class="muted">表示できる選手がいません。チェックを外すか、名簿に追加してください。</p>`}
     ${cur?`<button class="btn warn" data-unassign="1">このポジションを空ける</button>`:""}</div>`;
   }
-  h+=`<div class="card"><h3>サーブ順（${SET_LABEL[S.luSet]}）</h3>${sd.serve.length?`<div>${sd.serve.map((id,i)=>{ const pos=POS_ORDER.find(p=>sd.pos[p]===id); return `<div class="player"><span class="num" style="background:var(--ink);color:var(--bg)">${i+1}</span><div class="nm"><b>${esc(pnum(id))}　${esc(pname(id))}</b><span class="muted">${pos?esc(POS[pos].name):""}</span></div>${D.canWrite?`<button class="icon-btn" data-svmove="${i}:-1" aria-label="${i+1}番を上へ" ${i===0?"disabled":""}>↑</button><button class="icon-btn" data-svmove="${i}:1" aria-label="${i+1}番を下へ" ${i===sd.serve.length-1?"disabled":""}>↓</button>`:""}</div>`; }).join("")}</div>`:`<p class="muted">コートに選手を入れると、ここにサーブ順が並びます。</p>`}</div>`;
+  h+=`<div class="card"><h3>サーブ順（${SET_LABEL[S.luSet]}）</h3>${D.canWrite&&sd.serve.length>1?`<p class="why">行を長押しして、上下にスライドすると入れ替えられます。</p>`:""}${sd.serve.length?`<div id="svlist">${sd.serve.map((id,i)=>{ const pos=POS_ORDER.find(p=>sd.pos[p]===id); return `<div class="player svrow" data-svi="${i}">${D.canWrite?`<span class="grip" aria-hidden="true">⠿</span>`:""}<span class="num" style="background:var(--ink);color:var(--bg)">${i+1}</span><div class="nm"><b>${esc(pnum(id))}　${esc(pname(id))}</b><span class="muted">${pos?esc(POS[pos].name):""}</span></div>${D.canWrite?`<button class="icon-btn" data-svmove="${i}:-1" aria-label="${i+1}番を上へ" ${i===0?"disabled":""}>↑</button><button class="icon-btn" data-svmove="${i}:1" aria-label="${i+1}番を下へ" ${i===sd.serve.length-1?"disabled":""}>↓</button>`:""}</div>`; }).join("")}</div>`:`<p class="muted">コートに選手を入れると、ここにサーブ順が並びます。</p>`}</div>`;
   const bench=D.roster.filter(p=>!Object.values(sd.pos).includes(p.id)&&(!S.regOnly||p.reg)).sort((a,b)=>(+a.num||9999)-(+b.num||9999));
   if(bench.length) h+=`<div class="card"><h3>ベンチ</h3><div class="chips">${bench.map(p=>`<span class="chip">${esc(p.num??"")} ${esc(p.name)}</span>`).join("")}</div></div>`;
   if(D.canWrite) h+=`<button class="btn warn" data-del-l="${esc(l.id)}">このオーダー表を削除</button>`;
@@ -571,6 +626,7 @@ function viewTeam(){
 
 /* ---------- render & events ---------- */
 function render(){
+  if(S.dragging){ render.pending=true; return; }
   const ae=document.activeElement; const fid=ae&&ae.id&&ae.closest&&ae.closest("form")?ae.id:null; let keep={};
   document.querySelectorAll("form input,form select").forEach(i=>{ keep[i.id]= i.type==="checkbox"?i.checked:i.value; });
   const v = {home:viewHome,tactics:viewTactics,skills:viewSkills,practice:viewPractice,team:viewTeam}[S.tab]();
@@ -580,7 +636,46 @@ function render(){
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   $("#who").textContent = S.mine ? POS[S.mine].name : "";
   const q=$("#q"); if(q) q.addEventListener("input",e=>{ S.q=e.target.value; const pos=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(pos,pos); });
+  setupDrag();
   const p=$("#ppl"); if(p) p.addEventListener("change",e=>{ const n=Math.round(+e.target.value); S.ppl=Math.min(40,Math.max(1,isFinite(n)&&n>0?n:S.ppl)); render(); });
+}
+/* ---------- serve order drag ---------- */
+let DRG=null;
+function setupDrag(){
+  const list=document.getElementById("svlist"); if(!list||!D.canWrite) return;
+  list.addEventListener("touchstart",e=>pressStart(e,e.touches[0]),{passive:true});
+  list.addEventListener("touchmove",e=>{ const t=e.touches[0]; if(DRG&&DRG.on){ e.preventDefault(); dragMove(t.clientY); } else pressCancelIfMoved(t); },{passive:false});
+  list.addEventListener("touchend",dragEnd); list.addEventListener("touchcancel",dragEnd);
+  list.addEventListener("mousedown",e=>{ if(e.button!==0) return; pressStart(e,e); const mm=ev=>{ if(DRG&&DRG.on){ ev.preventDefault(); dragMove(ev.clientY); } else pressCancelIfMoved(ev); }; const mu=()=>{ window.removeEventListener("mousemove",mm); window.removeEventListener("mouseup",mu); dragEnd(); }; window.addEventListener("mousemove",mm); window.addEventListener("mouseup",mu); });
+  list.addEventListener("contextmenu",e=>{ if(DRG) e.preventDefault(); });
+}
+function pressStart(e,pt){
+  if(e.target.closest("button")) return;
+  const row=e.target.closest(".svrow"); if(!row) return;
+  const onGrip=!!e.target.closest(".grip");
+  DRG={row,on:false,x:pt.clientX,y:pt.clientY,timer:setTimeout(()=>dragBegin(),onGrip?120:380)};
+}
+function pressCancelIfMoved(pt){ if(DRG&&!DRG.on&&(Math.abs(pt.clientX-DRG.x)>8||Math.abs(pt.clientY-DRG.y)>8)){ clearTimeout(DRG.timer); DRG=null; } }
+function dragBegin(){
+  if(!DRG) return; const list=document.getElementById("svlist"); if(!list){ DRG=null; return; }
+  const rows=[...list.querySelectorAll(".svrow")];
+  DRG.on=true; DRG.rows=rows; DRG.from=rows.indexOf(DRG.row); DRG.to=DRG.from; DRG.h=DRG.row.getBoundingClientRect().height; DRG.startPage=DRG.y+window.scrollY; DRG.lastY=DRG.y;
+  S.dragging=true; DRG.row.classList.add("lift"); rows.forEach(r=>{ if(r!==DRG.row) r.classList.add("shift"); });
+  try{ navigator.vibrate&&navigator.vibrate(15); }catch(e){}
+  DRG.scroller=setInterval(()=>{ if(!DRG||!DRG.on) return; const y=DRG.lastY, edge=90; let v=0; if(y<edge) v=-10; else if(y>window.innerHeight-140) v=10; if(v){ window.scrollBy(0,v); dragMove(y); } },16);
+}
+function dragMove(clientY){
+  const d=DRG; d.lastY=clientY; const dy=clientY+window.scrollY-d.startPage;
+  d.row.style.transform=`translateY(${dy}px)`;
+  const to=Math.max(0,Math.min(d.rows.length-1,d.from+Math.round(dy/d.h))); d.to=to;
+  d.rows.forEach((r,j)=>{ if(r===d.row) return; let t=0; if(d.from<to&&j>d.from&&j<=to) t=-d.h; else if(d.from>to&&j>=to&&j<d.from) t=d.h; r.style.transform=t?`translateY(${t}px)`:""; });
+}
+function dragEnd(){
+  if(!DRG) return; const d=DRG; DRG=null; clearTimeout(d.timer);
+  if(!d.on) return;
+  clearInterval(d.scroller); S.dragging=false;
+  if(d.to!==d.from){ const sd=syncServe(setData(lu(),S.luSet)); const [m]=sd.serve.splice(d.from,1); sd.serve.splice(d.to,0,m); writeSet(S.luSet,sd); }
+  else { render.pending=false; render(); }
 }
 function freshRender(){ render.reset=true; render(); }
 document.addEventListener("click",e=>{
