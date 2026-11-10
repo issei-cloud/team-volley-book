@@ -296,8 +296,8 @@ const EV_KINDS = ["大会","練習試合","締切","その他"];
 
 /* ---------- state ---------- */
 const S = {tab:"home",tsub:"form",form:"recv",sel:null,skill:null,target:null,q:"",theme:"miai",ppl:14,mine:null,done:{},kiso:"spiker",spinning:false,rot:0,picked:null,teamSub:"roster",luId:null,luSet:"s1",luPos:null,regOnly:true,editR:null,editE:null,showPast:false};
-try{ S.mine = localStorage.getItem("vb-mine"); }catch(e){}
-const D = {mode:"loading",roster:[],events:[],lineups:[],boards:[],settings:{},canWrite:true,note:"",err:""};
+try{ S.mine = localStorage.getItem("vb-mine"); S.me = localStorage.getItem("vb-me"); }catch(e){}
+const D = {mode:"loading",roster:[],events:[],lineups:[],boards:[],growth:[],settings:{},canWrite:true,note:"",err:""};
 
 const $ = s=>document.querySelector(s);
 const esc = s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -321,7 +321,7 @@ function saveSettings(patch){
   if(D.mode==="db"){ const body=JSON.parse(JSON.stringify(D.settings)); setQueue=setQueue.then(()=>DB.doc("settings/team").set(body)).catch(e=>{ if(e&&e.code==="invalid_argument"){ D.canWrite=false; D.err="編集の権限がありません。"; } else D.err="設定を保存できませんでした。"; render(); }); }
   else { try{ localStorage.setItem("vb-settings",JSON.stringify(D.settings)); }catch(e){} }
 }
-function useLocal(){ D.mode="local"; D.settings=LSobj("vb-settings"); applyTheme(); D.roster=LS.get("vb-roster"); D.events=LS.get("vb-events"); D.lineups=LS.get("vb-lineups"); D.boards=LS.get("vb-boards"); render(); }
+function useLocal(){ D.mode="local"; D.settings=LSobj("vb-settings"); applyTheme(); D.roster=LS.get("vb-roster"); D.events=LS.get("vb-events"); D.lineups=LS.get("vb-lineups"); D.boards=LS.get("vb-boards"); D.growth=LS.get("vb-growth"); render(); }
 async function initData(){
   if(!window.claude || typeof window.claude.use!=="function"){ useLocal(); return; }
   try{
@@ -335,6 +335,7 @@ async function initData(){
     DB.collection("roster").onSnapshot(s=>{ D.roster=s.docs.map(d=>({id:d.id,...d.data()})); if(!s.metadata.fromCache){got.r=true;done();} render(); },e=>{ clearTimeout(timer); D.note="名簿を読み込めませんでした。"; render(); });
     DB.collection("events").onSnapshot(s=>{ D.events=s.docs.map(d=>({id:d.id,...d.data()})); if(!s.metadata.fromCache){got.e=true;done();} render(); },e=>{ clearTimeout(timer); D.note="大会予定を読み込めませんでした。"; render(); });
     DB.doc("settings/team").onSnapshot(s=>{ if(S.dragging) return; D.settings=s.exists?JSON.parse(JSON.stringify(s.data()||{})):{}; applyTheme(); render(); },e=>{});
+    DB.collection("growth").onSnapshot(s=>{ D.growth=s.docs.map(d=>({id:d.id,...JSON.parse(JSON.stringify(d.data()))})); render(); },e=>{});
     DB.collection("boards").onSnapshot(s=>{ D.boards=s.docs.map(d=>({id:d.id,...d.data()})); render(); },e=>{});
     DB.collection("lineups").onSnapshot(s=>{ D.lineups=s.docs.map(d=>({id:d.id,...d.data()})); render(); },e=>{ D.note="オーダーを読み込めませんでした。"; render(); });
     render();
@@ -446,6 +447,9 @@ function viewHome(){
   const mine = S.mine && POS[S.mine]; const next = upcoming()[0];
   let h = countdown() + `<div class="banner" style="background:var(--surface);color:var(--ink);border:1px solid var(--line)"><span class="muted">今月のテーマ</span><b style="font-size:17px">${esc(THEMES[S.theme].n)}</b><span class="muted">判断ルールの7か条を全員でそろえる</span></div>`;
   if(next) h += `<div class="card"><div class="row" style="justify-content:space-between"><h3>次の予定</h3><button class="icon-btn" data-tab="team" data-teamsub="events">すべて見る</button></div><div>${evRow(next,false)}</div></div>`;
+  if(D.roster.length){ const me=S.me&&player(S.me);
+    h += `<h2>あなたの目標</h2><label class="f" for="mesel">名前を選ぶと、キャプテンが書いた目標や改善ポイントが出ます</label><select id="mesel"><option value="">選んでください</option>${[...D.roster].sort((a,b)=>(+a.num||9999)-(+b.num||9999)).map(p=>`<option value="${esc(p.id)}" ${S.me===p.id?"selected":""}>${esc(p.num??"")} ${esc(p.name)}</option>`).join("")}</select>`;
+    if(me) h += `<div class="card">${growthSummary(me.id,true)}<button class="icon-btn" style="align-self:flex-start" data-tab="team" data-gopen="${esc(me.id)}">記録もすべて見る</button></div>`; }
   h += `<h2>あなたのポジション</h2><div class="chips">${Object.keys(POS).map(k=>`<button class="chip" data-mine="${k}" aria-pressed="${S.mine===k}">${k==="S"?"セッター":SHORT[k]}</button>`).join("")}</div>`;
   if(mine){
     h += `<div class="card">${roleBlock(S.mine)}</div><h2>まず読むカード</h2><div class="stack">${mine.cards.map(cardBtn).join("")}<button class="list-btn" data-tab="practice" data-kiso="${mine.kiso}"><span><b>基礎練メニュー（${KISO[mine.kiso].n}）</b><br><small>練習はじめの20〜30分</small></span><span class="arrow">›</span></button></div>`;
@@ -616,10 +620,11 @@ function viewLineups(){
   return h;
 }
 const STANDALONE = !/claude|anthropic/.test(location.hostname) && location.protocol.startsWith("http");
-function exportJSON(){ return JSON.stringify({app:"team-volley-book",version:1,exported:new Date().toISOString(),roster:D.roster,events:D.events,lineups:D.lineups,boards:D.boards,settings:D.settings}); }
+function exportJSON(){ const o={app:"team-volley-book",version:1,exported:new Date().toISOString(),roster:D.roster,events:D.events,lineups:D.lineups,boards:D.boards,settings:D.settings}; if(S.xGrowth) o.growth=D.growth; return JSON.stringify(o); }
 function dataCard(){
   return `<details class="card" id="xfer" ${S.xferOpen?"open":""}><summary style="cursor:pointer;font-weight:700">データの受け渡し</summary>
   <p class="muted">名簿・オーダー・大会予定を1つのファイルにまとめて、別の端末やメンバーに渡せます。</p>
+  <label class="check"><input type="checkbox" id="xgrowth" ${S.xGrowth?"checked":""}><span>選手ごとの育成メモも含める<br><span class="why">チーム全員に送るときは外しておくのがおすすめです。本人だけに渡すときは、選手の育成ページの「この選手の分だけ送る」を使ってください。</span></span></label>
   <div class="row">${STANDALONE?`<button class="btn sub" data-export="file">ファイルに書き出す</button>`:""}<button class="btn sub" data-export="copy">文字でコピー</button></div>
   ${S.xferMsg?`<p class="muted" role="status">${esc(S.xferMsg)}</p>`:""}
   ${D.canWrite?`<label class="f">ファイルから読み込む<input type="file" id="ximport" accept="application/json,.json,.txt"></label>
@@ -631,7 +636,7 @@ async function importData(text){
   let obj; try{ obj=JSON.parse(text); }catch(e){ S.xferMsg="読み込めませんでした。ファイルの中身が正しくありません。"; return render(); }
   if(!obj||obj.app!=="team-volley-book"){ S.xferMsg="チームバレー帳のデータではないようです。"; return render(); }
   let n=0;
-  for(const col of ["roster","events","lineups","boards"]){
+  for(const col of ["roster","events","lineups","boards","growth"]){
     for(const it of (Array.isArray(obj[col])?obj[col]:[])){
       if(!it||typeof it!=="object") continue;
       const {id,...body}=it; const safeId = typeof id==="string"&&/^[A-Za-z0-9_\-.~:@+]{1,100}$/.test(id)&&id!=="."&&id!==".." ? id : null;
@@ -646,13 +651,44 @@ const BRANDS=[["#16213A","ネイビー"],["#C8102E","レッド"],["#1D4ED8","ブ
 const ACCENTS=[["#F2A900","イエロー"],["#FACC15","レモン"],["#22D3EE","シアン"],["#F472B6","ピンク"],["#A3E635","ライム"],["#FB923C","オレンジ"],["#FFFFFF","ホワイト"],["#94A3B8","シルバー"]];
 function viewSettings(){
   const st=D.settings||{}; const cb=st.brand||"", ca=st.accent||"";
+  let pre=`<form class="card" id="ftn"><h3>チーム名</h3><p class="muted">アプリの一番上に表示される名前です。</p><div class="row" style="flex-wrap:nowrap"><input type="text" id="tname" maxlength="20" value="${esc(st.teamName||"")}" placeholder="チームバレー帳" aria-label="チーム名" ${D.canWrite?"":"disabled"}>${D.canWrite?`<button class="btn" type="submit" style="white-space:nowrap">保存</button>`:""}</div><p class="why">ホーム画面のアイコンの下の名前は、追加するときに自分で書き換えられます（iPhoneは「ホーム画面に追加」の画面で名前を編集）。</p></form>`;
   const sw=(list,key,cur)=>list.map(([c,n])=>`<button class="sw" style="--c:${c}" data-${key}="${c}" aria-pressed="${cur.toLowerCase()===c.toLowerCase()}" aria-label="${n}" title="${n}" ${D.canWrite?"":"disabled"}></button>`).join("");
   let h=`<div class="card"><h3>チームカラー</h3><p class="muted">ボタン・見出しの帯・選択中の表示に使うメインの色です。</p><div class="chips">${sw(BRANDS,"brand",cb)}</div>${D.canWrite?`<label class="f">好きな色を選ぶ<input type="color" id="cbrand" value="${lum(cb)!==null?cb:"#16213A"}" style="height:44px;padding:4px"></label>`:""}</div>`;
   h+=`<div class="card"><h3>アクセントカラー</h3><p class="muted">声かけの強調やサーブの狙い所などに使う、差し色です。</p><div class="chips">${sw(ACCENTS,"accent",ca)}</div>${D.canWrite?`<label class="f">好きな色を選ぶ<input type="color" id="caccent" value="${lum(ca)!==null?ca:"#F2A900"}" style="height:44px;padding:4px"></label>`:""}</div>`;
   h+=`<div class="card"><h3>見え方の確認</h3><div class="banner"><span class="muted">今月のテーマ</span><b>お見合いをなくす</b></div><div class="row"><button class="btn" type="button">ボタン</button><span class="chip" style="background:var(--brand);color:var(--brand-ink);border-color:var(--brand)">選択中</span><span class="cue">「打つ瞬間にトン」</span></div>${D.canWrite&&(cb||ca)?`<button class="btn warn" data-themereset="1">最初の色に戻す</button>`:""}</div>`;
+  h=pre+h;
   h+=`<p class="note">${D.mode==="db"?"色や配置図の変更は、このアプリを共有しているメンバー全員の画面に反映されます。":"色や配置図の変更はこの端末に保存されます。メンバーにも反映するには、下の「データの受け渡し」で送ってください。"}</p>`;
   return h;
 }
+function growthOf(pid){ return D.growth.find(x=>x.id===pid)||{}; }
+async function saveGrowth(pid,patch){ const cur=growthOf(pid); const {id,...rest}=cur; const body={...JSON.parse(JSON.stringify(rest)),...patch,updated:new Date().toISOString()}; const i=D.growth.findIndex(x=>x.id===pid); if(i>=0) D.growth[i]={id:pid,...body}; else D.growth.push({id:pid,...body}); return save("growth",pid,body); }
+const CARD_OPTS=()=>[["","（技術カードなし）"],...Object.entries(CARDS).map(([k,c])=>[k,c.t])];
+function growthSummary(pid,compact){
+  const g=growthOf(pid); const imp=g.improve||[]; const done=imp.filter(x=>x.done).length;
+  let h="";
+  h+=g.goal?`<div class="banner"><span class="muted">目標${g.due?`（${esc(md(g.due))}まで）`:""}</span><b style="font-size:16px;overflow-wrap:anywhere">${esc(g.goal)}</b>${g.focus?`<span class="muted">次の練習で意識すること：${esc(g.focus)}</span>`:""}</div>`:`<p class="muted">まだ目標が入っていません。</p>`;
+  if((g.strengths||[]).length) h+=`<h4>伸ばすところ</h4><div class="chips">${g.strengths.map(x=>`<span class="tag" style="--c:var(--def);--tbg:var(--def-bg);font-size:13px;padding:3px 10px">${esc(x)}</span>`).join("")}</div>`;
+  if(imp.length) h+=`<div class="row" style="justify-content:space-between"><h4>改善ポイント</h4><span class="muted">${done}/${imp.length} 達成</span></div><div class="stack">${imp.map((x,i)=>`<div class="row" style="flex-wrap:nowrap;gap:10px"><span style="color:${x.done?"var(--def)":"var(--muted)"};font-size:18px">${x.done?"✓":"○"}</span><span style="flex:1;${x.done?"text-decoration:line-through;color:var(--muted)":""}">${esc(x.t)}</span>${x.card&&CARDS[x.card]?`<button class="icon-btn" data-skill="${x.card}">${esc(CARDS[x.card].t)}を見る</button>`:""}</div>`).join("")}</div>`;
+  if(!compact&&(g.log||[]).length) h+=`<h4>記録</h4><div class="stack">${g.log.slice(0,5).map(l=>`<div class="sym-row"><span class="muted">${esc(l.d.replace(/-/g,"/"))}</span><span style="overflow-wrap:anywhere">${esc(l.t)}</span></div>`).join("")}</div>`;
+  return h;
+}
+function viewGrowth(pid){
+  const p=player(pid); if(!p){ S.gp=null; return `<p class="muted">選手が見つかりません。</p>`; }
+  const g=growthOf(pid);
+  let h=`<button class="back" data-gp="">‹ 名簿に戻る</button><div class="row"><span class="num">${esc(p.num??"-")}</span><div><h2 style="margin:0">${esc(p.name)}</h2><span class="muted">${esc(posLabel(p.pos))}${g.updated?`・更新 ${esc(g.updated.slice(0,10).replace(/-/g,"/"))}`:""}</span></div></div>`;
+  h+=`<div class="card">${growthSummary(pid,false)}</div>`;
+  if(D.canWrite){
+    h+=`<form class="card" id="fggoal"><h3>目標と意識すること</h3><label class="f">目標<input type="text" id="ggoal" maxlength="120" value="${esc(g.goal||"")}" placeholder="例：サーブレシーブをセッターに返す率を上げる"></label><label class="f">いつまでに<input type="date" id="gdue" value="${esc(g.due||"")}"></label><label class="f">次の練習で意識すること<input type="text" id="gfocus" maxlength="120" value="${esc(g.focus||"")}" placeholder="例：構えは胸の前、下に入ってから組む"></label><div class="row"><button class="btn" type="submit">保存</button>${S.gsaved?`<span class="muted" role="status">保存しました</span>`:""}</div></form>`;
+    h+=`<div class="card"><h3>伸ばすところ</h3>${(g.strengths||[]).length?`<div class="stack">${g.strengths.map((x,i)=>`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span>${esc(x)}</span><button class="icon-btn" data-gstrdel="${i}" aria-label="${esc(x)}を削除">削除</button></div>`).join("")}</div>`:""}<form id="fgstr" class="row" style="flex-wrap:nowrap"><input type="text" id="gstr" maxlength="80" placeholder="例：ストレートの打ち分け" aria-label="伸ばすところ"><button class="btn sub" type="submit" style="white-space:nowrap">追加</button></form></div>`;
+    h+=`<div class="card"><h3>改善ポイント</h3><p class="why">できるようになったらチェック。技術カードをつなげておくと、本人がすぐ読めます。</p>${(g.improve||[]).length?`<div class="stack">${g.improve.map((x,i)=>`<div class="row" style="flex-wrap:nowrap"><label class="check" style="flex:1"><input type="checkbox" data-gdone="${i}" ${x.done?"checked":""}><span>${esc(x.t)}${x.card&&CARDS[x.card]?`<br><span class="why">${esc(CARDS[x.card].t)}</span>`:""}</span></label><button class="icon-btn" data-gimpdel="${i}" aria-label="${esc(x.t)}を削除">削除</button></div>`).join("")}</div>`:""}
+    <form id="fgimp" class="stack"><input type="text" id="gimp" maxlength="80" placeholder="例：レシーブで腕を振ってしまう" aria-label="改善ポイント"><div class="row" style="flex-wrap:nowrap"><select id="gcard" aria-label="つなげる技術カード">${CARD_OPTS().map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join("")}</select><button class="btn sub" type="submit" style="white-space:nowrap">追加</button></div></form></div>`;
+    h+=`<form class="card" id="fgnote"><h3>記録を残す</h3><p class="why">練習や試合で気づいたことを、日付つきで残せます（新しい順に最大50件）。</p><textarea id="gnote" maxlength="300" placeholder="例：11/11 練習。構えを直したら正面のボールが安定してきた"></textarea><div class="row"><button class="btn sub" type="submit">記録する</button></div>${(g.log||[]).length?`<div class="stack">${g.log.map((l,i)=>`<div class="row" style="justify-content:space-between;flex-wrap:nowrap;border-top:1px solid var(--line);padding-top:6px"><span><span class="muted">${esc(l.d.replace(/-/g,"/"))}</span><br>${esc(l.t)}</span><button class="icon-btn" type="button" data-glogdel="${i}">削除</button></div>`).join("")}</div>`:""}</form>`;
+  }
+  h+=`<div class="card"><h3>本人に渡す</h3><p class="muted">この選手の育成メモだけをコピーします。本人に送って、「データの受け渡し」で読み込んでもらってください。</p><div class="row"><button class="btn sub" data-gshare="${esc(pid)}">この選手の分だけ送る（アプリ用）</button><button class="btn sub" data-gtext="${esc(pid)}">文章でコピー</button></div>${S.gmsg?`<p class="muted" role="status">${esc(S.gmsg)}</p>`:""}</div>`;
+  return h;
+}
+function growthText(pid){ const p=player(pid), g=growthOf(pid); let t=`【${p.name}さんの目標】\n${g.goal||"（未設定）"}${g.due?`（${md(g.due)}まで）`:""}\n`; if(g.focus) t+=`\n■次の練習で意識すること\n${g.focus}\n`; if((g.strengths||[]).length) t+=`\n■伸ばすところ\n${g.strengths.map(x=>"・"+x).join("\n")}\n`; if((g.improve||[]).length) t+=`\n■改善ポイント\n${g.improve.map(x=>(x.done?"✓ ":"・")+x.t+(x.card&&CARDS[x.card]?`（技術カード：${CARDS[x.card].t}）`:"")).join("\n")}\n`; return t; }
+function copyText(txt,okMsg){ (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{ S.gmsg=okMsg; render(); }).catch(()=>{ S.gmsg="コピーできませんでした。"; render(); }); }
 function posLabel(k){ const o=POS_OPTS.find(x=>x[0]===k); return o?o[1]:"未定"; }
 function viewTeam(){
   let h = `<div class="seg" role="group" aria-label="表示"><button data-teamsub="roster" aria-pressed="${S.teamSub==="roster"}">名簿</button><button data-teamsub="lineup" aria-pressed="${S.teamSub==="lineup"}">オーダー</button><button data-teamsub="events" aria-pressed="${S.teamSub==="events"}">大会予定</button><button data-teamsub="settings" aria-pressed="${S.teamSub==="settings"}">設定</button></div>`;
@@ -663,11 +699,12 @@ function viewTeam(){
   if(!D.canWrite) h += `<p class="note">閲覧のみです。編集はキャプテンが共有設定で「参加者」以上にした人ができます。</p>`;
   if(S.teamSub==="lineup") return h+viewLineups()+dataCard();
   if(S.teamSub==="settings") return h+viewSettings()+dataCard();
+  if(S.teamSub==="roster"&&S.gp) return h+viewGrowth(S.gp);
   if(S.teamSub==="roster"){
     const list=[...D.roster].sort((a,b)=>(+a.num||999)-(+b.num||999));
     const reg=list.filter(p=>p.reg).length;
     h += `<div class="card"><div class="row" style="justify-content:space-between"><h3>名簿</h3><span class="muted">${list.length}人・選手登録 ${reg}人</span></div>`;
-    h += list.length ? `<div>${list.map(p=>`<div class="player"><span class="num">${esc(p.num??"-")}</span><div class="nm"><b>${esc(p.name)}</b><span class="muted">${esc(posLabel(p.pos))}</span></div><span class="tag" style="--c:${p.reg?'var(--def)':'var(--muted)'};--tbg:${p.reg?'var(--def-bg)':'var(--court)'}">${p.reg?"登録済":"未登録"}</span>${D.canWrite?`<button class="icon-btn" data-edit-r="${esc(p.id)}">編集</button>`:""}</div>`).join("")}</div>` : `<p class="muted">まだ誰も登録されていません。下のフォームから追加してください。</p>`;
+    h += list.length ? `<div>${list.map(p=>`<div class="player"><span class="num">${esc(p.num??"-")}</span><div class="nm"><b>${esc(p.name)}</b><span class="muted">${esc(posLabel(p.pos))}</span></div><span class="tag" style="--c:${p.reg?'var(--def)':'var(--muted)'};--tbg:${p.reg?'var(--def-bg)':'var(--court)'}">${p.reg?"登録済":"未登録"}</span><button class="icon-btn" data-gp="${esc(p.id)}">育成</button>${D.canWrite?`<button class="icon-btn" data-edit-r="${esc(p.id)}">編集</button>`:""}</div>`).join("")}</div>` : `<p class="muted">まだ誰も登録されていません。下のフォームから追加してください。</p>`;
     h += `</div>`;
     if(D.canWrite){
       const e = S.editR?D.roster.find(x=>x.id===S.editR):null;
@@ -844,7 +881,8 @@ function render(){
   if(!render.reset){ Object.entries(keep).forEach(([id,val])=>{ const el=document.getElementById(id); if(el){ if(el.type==="checkbox") el.checked=val; else el.value=val; } }); if(fid){ const el=document.getElementById(fid); if(el) el.focus(); } }
   render.reset=false;
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
-  $("#who").textContent = S.mine ? POS[S.mine].name : "";
+  const tn=((D.settings||{}).teamName||"").trim()||"チームバレー帳"; const h1=$("header.top h1"); if(h1&&h1.textContent!==tn) h1.textContent=tn; if(document.title!==tn) document.title=tn;
+  const me=S.me&&player(S.me); $("#who").textContent = me ? `${me.num??""} ${me.name}` : (S.mine ? POS[S.mine].name : "");
   const q=$("#q"); if(q) q.addEventListener("input",e=>{ S.q=e.target.value; const pos=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(pos,pos); });
   setupDrag(); setupBoard(); setupFormEdit(); setupTargetEdit();
   const p=$("#ppl"); if(p) p.addEventListener("change",e=>{ const n=Math.round(+e.target.value); S.ppl=Math.min(40,Math.max(1,isFinite(n)&&n>0?n:S.ppl)); render(); });
@@ -897,10 +935,12 @@ function dragEnd(){
 }
 function freshRender(){ render.reset=true; render(); }
 document.addEventListener("click",e=>{
-  const t = e.target.closest("[data-tab],[data-tsub],[data-form],[data-pos],[data-skill],[data-target],[data-mine],[data-theme],[data-done],[data-ppl],[data-spin],[data-kiso],[data-teamsub],[data-edit-r],[data-edit-e],[data-cancel],[data-del-r],[data-del-e],[data-past],[data-men],[data-lu],[data-luset],[data-lupos],[data-assign],[data-unassign],[data-svmove],[data-copyset],[data-luback],[data-del-l],[data-regonly],[data-export],[data-import],[data-bmode],[data-bshow],[data-bundo],[data-bpreset],[data-bclear],[data-bload],[data-bdel],[data-fedit],[data-freset],[data-fdel],[data-tedit],[data-tadd],[data-treset],[data-tdel],[data-brand],[data-accent],[data-themereset],[data-bkind],[data-rshow]");
+  const t = e.target.closest("[data-tab],[data-tsub],[data-form],[data-pos],[data-skill],[data-target],[data-mine],[data-theme],[data-done],[data-ppl],[data-spin],[data-kiso],[data-teamsub],[data-edit-r],[data-edit-e],[data-cancel],[data-del-r],[data-del-e],[data-past],[data-men],[data-lu],[data-luset],[data-lupos],[data-assign],[data-unassign],[data-svmove],[data-copyset],[data-luback],[data-del-l],[data-regonly],[data-export],[data-import],[data-bmode],[data-bshow],[data-bundo],[data-bpreset],[data-bclear],[data-bload],[data-bdel],[data-fedit],[data-freset],[data-fdel],[data-tedit],[data-tadd],[data-treset],[data-tdel],[data-brand],[data-accent],[data-themereset],[data-bkind],[data-rshow],[data-gp],[data-gopen],[data-gdone],[data-gstrdel],[data-gimpdel],[data-glogdel],[data-gshare],[data-gtext]");
   if(!t) return;
   const d = t.dataset;
   if(d.done!==undefined){ S.done[d.done]=t.checked; return; }
+  if(d.gdone!==undefined){ const g=growthOf(S.gp); const imp=(g.improve||[]).map((x,i)=>i===+d.gdone?{...x,done:t.checked}:x); saveGrowth(S.gp,{improve:imp}).then(()=>render()); return; }
+  if(d.tab&&d.gopen){ S.tab="team"; S.teamSub="roster"; S.gp=d.gopen; S.gmsg=""; S.gsaved=false; window.scrollTo(0,0); return freshRender(); }
   if(d.tab){ S.tab=d.tab; S.skill=null; S.target=null; if(d.teamsub) S.teamSub=d.teamsub; if(d.kiso) S.kiso=d.kiso; window.scrollTo(0,0); return freshRender(); }
   if(d.tsub) S.tsub=d.tsub;
   else if(d.form){ S.form=d.form; if(S.sel && !formation(S.form).pts[S.sel]) S.sel=null; }
@@ -919,7 +959,7 @@ document.addEventListener("click",e=>{
   else if(d.ppl){ S.ppl=Math.min(40,Math.max(1,S.ppl+(+d.ppl))); }
   else if(d.kiso) S.kiso=d.kiso;
   else if(d.spin){ return spin(); }
-  else if(d.teamsub){ S.teamSub=d.teamsub; S.editR=S.editE=null; D.err=""; return freshRender(); }
+  else if(d.teamsub){ S.teamSub=d.teamsub; S.editR=S.editE=null; S.gp=null; D.err=""; return freshRender(); }
   else if(d.editR){ S.editR=d.editR; freshRender(); document.getElementById("fr")?.scrollIntoView({behavior:"smooth",block:"start"}); return; }
   else if(d.editE){ S.editE=d.editE; freshRender(); document.getElementById("fe")?.scrollIntoView({behavior:"smooth",block:"start"}); return; }
   else if(d.cancel){ if(d.cancel==="r") S.editR=null; else S.editE=null; return freshRender(); }
@@ -937,6 +977,12 @@ document.addEventListener("click",e=>{
   else if(d.svmove){ const [i,dir]=d.svmove.split(":").map(Number); const sd=syncServe(setData(lu(),S.luSet)); const j=i+dir; if(j<0||j>=sd.serve.length) return; [sd.serve[i],sd.serve[j]]=[sd.serve[j],sd.serve[i]]; return writeSet(S.luSet,sd); }
   else if(d.copyset){ const prev=SETS[SETS.indexOf(S.luSet)-1]; return writeSet(S.luSet,setData(lu(),prev)); }
   else if(d.delL){ askDelete("lineups",d.delL,t); return; }
+  else if(d.gp!==undefined){ S.gp=d.gp||null; S.gmsg=""; S.gsaved=false; window.scrollTo(0,0); return freshRender(); }
+  else if(d.gstrdel!==undefined){ const g=growthOf(S.gp); saveGrowth(S.gp,{strengths:(g.strengths||[]).filter((_,i)=>i!==+d.gstrdel)}).then(()=>render()); return; }
+  else if(d.gimpdel!==undefined){ if(!t.dataset.armed){ t.dataset.armed="1"; t.textContent="もう一度"; return; } const g=growthOf(S.gp); saveGrowth(S.gp,{improve:(g.improve||[]).filter((_,i)=>i!==+d.gimpdel)}).then(()=>render()); return; }
+  else if(d.glogdel!==undefined){ if(!t.dataset.armed){ t.dataset.armed="1"; t.textContent="もう一度"; return; } const g=growthOf(S.gp); saveGrowth(S.gp,{log:(g.log||[]).filter((_,i)=>i!==+d.glogdel)}).then(()=>render()); return; }
+  else if(d.gshare){ const g=growthOf(d.gshare); copyText(JSON.stringify({app:"team-volley-book",version:1,exported:new Date().toISOString(),growth:[{...g,id:d.gshare}]}),"コピーしました。本人に送って、「データの受け渡し」に貼り付けて読み込んでもらってください。"); return; }
+  else if(d.gtext){ copyText(growthText(d.gtext),"文章をコピーしました。LINEなどに貼り付けて送れます。"); return; }
   else if(d.brand){ saveSettings({brand:d.brand}); }
   else if(d.accent){ saveSettings({accent:d.accent}); }
   else if(d.themereset){ saveSettings({brand:null,accent:null}); }
@@ -982,6 +1028,11 @@ document.addEventListener("submit",async e=>{
     const ok = await save("roster",S.editR,{num:num,name,pos:$("#rpos").value,reg:$("#rreg").checked});
     if(ok){ S.editR=null; freshRender(); }
   }
+  if(e.target.id==="ftn"){ const v=$("#tname").value.trim().slice(0,20); saveSettings({teamName:v||null}); freshRender(); return; }
+  if(e.target.id==="fgnote"){ const v=$("#gnote").value.trim(); if(!v) return; const g=growthOf(S.gp); const log=[{d:new Date().toISOString().slice(0,10),t:v.slice(0,300)},...(g.log||[])].slice(0,50); await saveGrowth(S.gp,{log}); freshRender(); return; }
+  if(e.target.id==="fggoal"){ await saveGrowth(S.gp,{goal:$("#ggoal").value.trim().slice(0,120),focus:$("#gfocus").value.trim().slice(0,120),due:$("#gdue").value}); S.gsaved=true; freshRender(); return; }
+  if(e.target.id==="fgstr"){ const v=$("#gstr").value.trim(); if(!v) return; const g=growthOf(S.gp); await saveGrowth(S.gp,{strengths:[...(g.strengths||[]),v.slice(0,80)].slice(0,20)}); freshRender(); return; }
+  if(e.target.id==="fgimp"){ const v=$("#gimp").value.trim(); if(!v) return; const g=growthOf(S.gp); await saveGrowth(S.gp,{improve:[...(g.improve||[]),{t:v.slice(0,80),card:$("#gcard").value,done:false}].slice(0,20)}); freshRender(); return; }
   if(e.target.id==="ffe"){ const note=$("#fnote").value.trim(); saveFormation(S.form,{note}); const fn=$("#fname"); if(fn){ const nm=fn.value.trim(); if(nm) saveSettings({scenes:sceneList().map(x=>x.id===S.form?{...x,label:nm}:x)}); } freshRender(); return; }
   if(e.target.id==="fnew"){ const nm=$("#fnewname").value.trim(); if(!nm){ $("#ferr").textContent="新しい場面の名前を入れてください。"; return; } if(sceneList().length>=8){ $("#ferr").textContent="追加できる場面は8つまでです。"; return; }
     const f=formation(S.form); const id="c"+Date.now().toString(36); const F={...(((D.settings||{}).formations)||{})}; F[id]={pts:f.pts,block:f.block,tri:f.tri.map(t=>t.join(",")),note:f.note};
@@ -1008,7 +1059,7 @@ document.addEventListener("submit",async e=>{
     if(ok){ S.editE=null; freshRender(); }
   }
 });
-document.addEventListener("change",e=>{ if(e.target.id==="cbrand"){ saveSettings({brand:e.target.value}); render(); return; } if(e.target.id==="caccent"){ saveSettings({accent:e.target.value}); render(); return; } if(e.target.id==="ximport"&&e.target.files[0]){ const f=e.target.files[0]; f.text().then(importData); } });
+document.addEventListener("change",e=>{ if(e.target.id==="mesel"){ S.me=e.target.value||null; try{ S.me?localStorage.setItem("vb-me",S.me):localStorage.removeItem("vb-me"); }catch(err){} if(S.me&&!S.mine){ const p=player(S.me); if(p&&p.pos&&POS[p.pos]) S.mine=p.pos; } render(); return; } if(e.target.id==="xgrowth"){ S.xGrowth=e.target.checked; return; } if(e.target.id==="cbrand"){ saveSettings({brand:e.target.value}); render(); return; } if(e.target.id==="caccent"){ saveSettings({accent:e.target.value}); render(); return; } if(e.target.id==="ximport"&&e.target.files[0]){ const f=e.target.files[0]; f.text().then(importData); } });
 document.addEventListener("toggle",e=>{ if(e.target.id==="xfer") S.xferOpen=e.target.open; },true);
 document.addEventListener("input",e=>{ if(e.target.closest("form")){ const er=e.target.closest("form").querySelector(".err"); if(er) er.textContent=""; } });
 document.addEventListener("keydown",e=>{ const g=e.target.closest&&e.target.closest("[data-pos],[data-target],[data-lupos]"); if(g&&g.tagName!=="BUTTON"&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); g.dispatchEvent(new MouseEvent("click",{bubbles:true})); }});
