@@ -293,7 +293,7 @@ const EV_KINDS = ["大会","練習試合","締切","その他"];
 /* ---------- state ---------- */
 const S = {tab:"home",tsub:"form",form:"recv",sel:null,skill:null,target:null,q:"",theme:"miai",ppl:14,mine:null,done:{},kiso:"spiker",spinning:false,rot:0,picked:null,teamSub:"roster",luId:null,luSet:"s1",luPos:null,regOnly:true,editR:null,editE:null,showPast:false};
 try{ S.mine = localStorage.getItem("vb-mine"); }catch(e){}
-const D = {mode:"loading",roster:[],events:[],lineups:[],canWrite:true,note:"",err:""};
+const D = {mode:"loading",roster:[],events:[],lineups:[],boards:[],canWrite:true,note:"",err:""};
 
 const $ = s=>document.querySelector(s);
 const esc = s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -301,7 +301,7 @@ const esc = s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":
 /* ---------- data layer ---------- */
 let DB = null;
 const LS = {get(k){try{return JSON.parse(localStorage.getItem(k)||"[]")}catch(e){return []}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-function useLocal(){ D.mode="local"; D.roster=LS.get("vb-roster"); D.events=LS.get("vb-events"); D.lineups=LS.get("vb-lineups"); render(); }
+function useLocal(){ D.mode="local"; D.roster=LS.get("vb-roster"); D.events=LS.get("vb-events"); D.lineups=LS.get("vb-lineups"); D.boards=LS.get("vb-boards"); render(); }
 async function initData(){
   if(!window.claude || typeof window.claude.use!=="function"){ useLocal(); return; }
   try{
@@ -314,6 +314,7 @@ async function initData(){
     const done = ()=>{ if(got.r&&got.e){ clearTimeout(timer); D.note=""; } };
     DB.collection("roster").onSnapshot(s=>{ D.roster=s.docs.map(d=>({id:d.id,...d.data()})); if(!s.metadata.fromCache){got.r=true;done();} render(); },e=>{ clearTimeout(timer); D.note="名簿を読み込めませんでした。"; render(); });
     DB.collection("events").onSnapshot(s=>{ D.events=s.docs.map(d=>({id:d.id,...d.data()})); if(!s.metadata.fromCache){got.e=true;done();} render(); },e=>{ clearTimeout(timer); D.note="大会予定を読み込めませんでした。"; render(); });
+    DB.collection("boards").onSnapshot(s=>{ D.boards=s.docs.map(d=>({id:d.id,...d.data()})); render(); },e=>{});
     DB.collection("lineups").onSnapshot(s=>{ D.lineups=s.docs.map(d=>({id:d.id,...d.data()})); render(); },e=>{ D.note="オーダーを読み込めませんでした。"; render(); });
     render();
   }catch(e){ useLocal(); }
@@ -420,7 +421,8 @@ function viewHome(){
   return h;
 }
 function viewTactics(){
-  let h = `<div class="seg" role="group" aria-label="表示"><button data-tsub="form" aria-pressed="${S.tsub==="form"}">配置図</button><button data-tsub="rules" aria-pressed="${S.tsub==="rules"}">判断ルール</button><button data-tsub="patterns" aria-pressed="${S.tsub==="patterns"}">他のパターン</button></div>`;
+  let h = `<div class="seg" role="group" aria-label="表示"><button data-tsub="form" aria-pressed="${S.tsub==="form"}">配置図</button><button data-tsub="rules" aria-pressed="${S.tsub==="rules"}">判断ルール</button><button data-tsub="patterns" aria-pressed="${S.tsub==="patterns"}">他のパターン</button><button data-tsub="board" aria-pressed="${S.tsub==="board"}">ボード</button></div>`;
+  if(S.tsub==="board") return h + viewBoard();
   if(S.tsub==="patterns") return h + viewPatterns();
   if(S.tsub==="rules") return h + `<p class="muted">チーム全員の約束です。迷ったらここに戻る。</p>` + RULES.map((r,i)=>`<div class="card rule"><span class="rule-num">${i+1}</span><div><h3>${esc(r.h)}</h3><ul class="clean">${r.b.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div></div>`).join("");
   const f = FORM[S.form];
@@ -554,7 +556,7 @@ function viewLineups(){
   return h;
 }
 const STANDALONE = !/claude|anthropic/.test(location.hostname) && location.protocol.startsWith("http");
-function exportJSON(){ return JSON.stringify({app:"team-volley-book",version:1,exported:new Date().toISOString(),roster:D.roster,events:D.events,lineups:D.lineups}); }
+function exportJSON(){ return JSON.stringify({app:"team-volley-book",version:1,exported:new Date().toISOString(),roster:D.roster,events:D.events,lineups:D.lineups,boards:D.boards}); }
 function dataCard(){
   return `<details class="card" id="xfer" ${S.xferOpen?"open":""}><summary style="cursor:pointer;font-weight:700">データの受け渡し</summary>
   <p class="muted">名簿・オーダー・大会予定を1つのファイルにまとめて、別の端末やメンバーに渡せます。</p>
@@ -569,7 +571,7 @@ async function importData(text){
   let obj; try{ obj=JSON.parse(text); }catch(e){ S.xferMsg="読み込めませんでした。ファイルの中身が正しくありません。"; return render(); }
   if(!obj||obj.app!=="team-volley-book"){ S.xferMsg="チームバレー帳のデータではないようです。"; return render(); }
   let n=0;
-  for(const col of ["roster","events","lineups"]){
+  for(const col of ["roster","events","lineups","boards"]){
     for(const it of (Array.isArray(obj[col])?obj[col]:[])){
       if(!it||typeof it!=="object") continue;
       const {id,...body}=it; const safeId = typeof id==="string"&&/^[A-Za-z0-9_\-.~:@+]{1,100}$/.test(id)&&id!=="."&&id!==".." ? id : null;
@@ -624,6 +626,103 @@ function viewTeam(){
   return h+dataCard();
 }
 
+/* ---------- tactics whiteboard ---------- */
+const BW=300, NET=120, BH=420, OPP_TOP=0;
+const BOARD_PRESETS = (()=>{
+  const out={};
+  const team = (k)=>Object.entries(FORM[k].pts).map(([id,[x,y]])=>({id,label:SHORT[id],grp:POS[id].grp,x,y:y+NET}));
+  out.recv={n:"うち：レシーブ",players:team("recv"),atk:{x:150,y:60}};
+  out.side={n:"うち：サイド攻撃",players:team("side"),atk:{x:262,y:100}};
+  out.center={n:"うち：センター攻撃",players:team("center"),atk:{x:150,y:100}};
+  PATTERNS.forEach(pt=>{ out["p"+pt.id]={n:pt.name+"（"+pt.kind.replace("（今の主流）","")+"）",players:pt.pts.map(([l,x,y,g],i)=>({id:"p"+i,label:l,grp:g,x,y:y+NET})),atk:{x:150,y:60}}; });
+  return out;
+})();
+function loadBoardCur(){ try{ const v=JSON.parse(localStorage.getItem("vb-board-cur")||"null"); if(v&&Array.isArray(v.players)) return v; }catch(e){} return null; }
+function clonePreset(k){ const p=BOARD_PRESETS[k]; return {preset:k,players:p.players.map(x=>({...x})),atk:{...p.atk},strokes:[]}; }
+S.board = loadBoardCur() || clonePreset("side");
+S.bmode="move"; S.bshow={course:true,shadow:true,feint:true};
+function saveBoardCur(){ try{ localStorage.setItem("vb-board-cur",JSON.stringify(S.board)); }catch(e){} }
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function hitPoint(){ const a=S.board.atk; return {x:a.x,y:Math.min(a.y,NET-6)}; }
+function blockers(){ return S.board.players.filter(p=>p.y<=NET+30); }
+const HAND=11;
+function projX(H,px,py,ty){ return H.x+(px-H.x)*(ty-H.y)/(py-H.y); }
+function isBlocked(H,T){ const xNet=projX(H,T.x,T.y,NET); return blockers().some(b=>Math.abs(xNet-b.x)<=HAND); }
+function courses(){
+  const H=hitPoint(); const farX = H.x<BW/2 ? BW-2 : 2; const nearX = H.x<BW/2 ? 2 : BW-2;
+  return [
+    {k:"straight",n:"ストレート",T:{x:clamp(H.x,4,BW-4),y:BH-4}},
+    {k:"cross",n:"クロス",T:{x:farX,y:BH-4}},
+    {k:"inner",n:"インナー",T:{x:farX,y:NET+95}},
+    {k:"long",n:"センター奥",T:{x:BW/2+(farX-BW/2)*0.25,y:BH-4}}
+  ].map(c=>({...c,blocked:isBlocked(H,c.T)}));
+}
+function segDist(P,A,B){ const vx=B.x-A.x, vy=B.y-A.y; const t=clamp(((P.x-A.x)*vx+(P.y-A.y)*vy)/(vx*vx+vy*vy),0,1); const q={x:A.x+vx*t,y:A.y+vy*t}; return {d:Math.hypot(P.x-q.x,P.y-q.y),q}; }
+function coverage(){
+  const H=hitPoint(); const defs=S.board.players.filter(p=>p.y>NET+30);
+  return courses().map(c=>{
+    if(c.blocked) return {...c,who:null};
+    const sy=c.k==="inner"?NET+30:NET+100; const A={x:H.x+(c.T.x-H.x)*((sy-H.y)/(c.T.y-H.y)),y:sy};
+    let best=null; defs.forEach(p=>{ const r=segDist(p,A,c.T); if(!best||r.d<best.d) best={p,...r}; });
+    return {...c,who:best};
+  });
+}
+function boardSVGInner(){
+  const B=S.board, H=hitPoint(), sh=S.bshow; let s="";
+  s+=`<defs><clipPath id="ourCourt"><rect x="0" y="${NET}" width="${BW}" height="${BH-NET}"/></clipPath><marker id="bArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ink)"/></marker><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--muted)" stroke-width="1.4" stroke-opacity=".5"/></pattern></defs>`;
+  s+=`<rect x="0" y="0" width="${BW}" height="${NET}" fill="var(--surface)" stroke="var(--line)"/><text x="8" y="16" font-size="11" fill="var(--muted)" font-family="var(--body)">相手コート（ネット際）</text>`;
+  s+=`<rect x="0" y="${NET}" width="${BW}" height="${BH-NET}" fill="var(--court)" stroke="var(--line)"/>`;
+  if(sh.course) s+=`<rect x="0" y="${NET}" width="${BW}" height="${BH-NET}" fill="var(--atk)" fill-opacity=".07"/>`;
+  if(sh.shadow){ s+=`<g clip-path="url(#ourCourt)">`; blockers().forEach(b=>{ const l=b.x-HAND, r=b.x+HAND; const xl=projX(H,l,NET,BH+400), xr=projX(H,r,NET,BH+400); s+=`<polygon points="${l},${NET} ${r},${NET} ${xr},${BH+400} ${xl},${BH+400}" fill="url(#hatch)"/><polygon points="${l},${NET} ${r},${NET} ${xr},${BH+400} ${xl},${BH+400}" fill="var(--muted)" fill-opacity=".14"/>`; }); s+=`</g>`; }
+  if(sh.feint){ const bs=blockers(); if(bs.length){ const cx=bs.reduce((a,b)=>a+b.x,0)/bs.length; s+=`<g clip-path="url(#ourCourt)"><ellipse cx="${cx}" cy="${NET}" rx="${42+bs.length*12}" ry="58" fill="var(--accent)" fill-opacity=".16" stroke="var(--accent)" stroke-dasharray="4 3"/></g><text x="${cx}" y="${NET+50}" text-anchor="middle" font-size="10" fill="var(--accent-ink)" font-family="var(--body)" style="paint-order:stroke" stroke="var(--court)" stroke-width="3">フェイント</text>`; } }
+  if(sh.course){ coverage().forEach(c=>{ const col=c.blocked?"var(--muted)":"var(--atk)"; s+=`<line x1="${H.x}" y1="${H.y}" x2="${c.T.x}" y2="${c.T.y}" stroke="${col}" stroke-width="${c.blocked?1.2:2}" stroke-dasharray="${c.blocked?"3 4":"7 4"}" stroke-opacity="${c.blocked?.6:.9}"/>`;
+      if(!c.blocked&&c.who) s+=`<line x1="${c.who.p.x}" y1="${c.who.p.y}" x2="${c.who.q.x}" y2="${c.who.q.y}" stroke="${c.who.d<=45?"var(--def)":"var(--danger)"}" stroke-width="1.4" stroke-dasharray="2 3"/>`;
+      const lx=clamp(c.T.x+(c.T.x<BW/2?6:-6),6,BW-6), ly=c.k==="long"?c.T.y-20:c.k==="inner"?c.T.y-8:c.T.y-6; s+=`<text x="${lx}" y="${ly}" text-anchor="${c.T.x<BW/2?"start":"end"}" font-size="10" font-weight="700" fill="${col}" font-family="var(--body)">${c.n}${c.blocked?"（ブロック）":""}</text>`; }); }
+  s+=`<rect x="0" y="${NET-2}" width="${BW}" height="4" fill="var(--ink)"/>`;
+  B.strokes.forEach(st=>{ if(st.length>1) s+=`<polyline points="${st.map(p=>p.join(",")).join(" ")}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#bArrow)"/>`; });
+  B.players.forEach(p=>{ const g=GRP[p.grp]||GRP.def; const blk=p.y<=NET+30; s+=`<g class="bp" data-pid="${esc(p.id)}"><circle cx="${p.x}" cy="${p.y}" r="17" fill="${g.bg}" stroke="${g.c}" stroke-width="${blk?3:1.4}"/><text x="${p.x}" y="${p.y}" text-anchor="middle" dominant-baseline="central" font-size="${String(p.label).length>2?10:11}" font-weight="700" fill="${g.c}" font-family="var(--body)" pointer-events="none">${esc(p.label)}</text><circle cx="${p.x}" cy="${p.y}" r="24" fill="transparent"/></g>`; });
+  const a=B.atk; s+=`<g class="bp" data-atk="1"><circle cx="${a.x}" cy="${a.y}" r="17" fill="var(--danger)"/><text x="${a.x}" y="${a.y}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="#fff" font-family="var(--body)" pointer-events="none">相手</text><circle cx="${a.x+13}" cy="${a.y-13}" r="6" fill="var(--accent)" stroke="var(--surface)" pointer-events="none"/><circle cx="${a.x}" cy="${a.y}" r="24" fill="transparent"/></g>`;
+  return s;
+}
+function coverageList(){
+  if(!S.bshow.course) return "";
+  return `<div class="stack">${coverage().map(c=>`<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:6px"><b style="font-size:13px">${c.n}</b>${c.blocked?`<span class="tag" style="--c:var(--muted);--tbg:var(--court)">ブロックで消えている</span>`:c.who?`<span class="tag" style="--c:${c.who.d<=45?"var(--def)":"var(--danger)"};--tbg:${c.who.d<=45?"var(--def-bg)":"var(--atk-bg)"}">${esc(c.who.p.label)}が${c.who.d<=45?"守れる":"遠い（空いている）"}</span>`:`<span class="muted">守る人なし</span>`}</div>`).join("")}</div>`;
+}
+function viewBoard(){
+  const B=S.board;
+  let h=`<p class="muted">選手と「相手」を指で動かせます。相手の打つ位置とブロックに合わせて、スパイクコース（赤）・ブロックの陰（斜線）・フェイントゾーン（黄）が変わります。ネットから約1m以内にいる選手はブロックとして扱います。</p>`;
+  h+=`<div class="card"><div class="row" style="justify-content:space-between"><div class="seg" role="group" aria-label="操作" style="flex:1"><button data-bmode="move" aria-pressed="${S.bmode==="move"}">動かす</button><button data-bmode="pen" aria-pressed="${S.bmode==="pen"}">ペン</button></div><button class="icon-btn" data-bundo="1">ペンを1つ戻す</button></div>
+  <div class="court"><svg id="board" viewBox="0 0 ${BW} ${BH}" role="img" aria-label="戦術ボード" style="touch-action:none;user-select:none;-webkit-user-select:none">${boardSVGInner()}</svg></div>
+  <div class="chips">${[["course","スパイクコース"],["shadow","ブロックの陰"],["feint","フェイント"]].map(([k,l])=>`<button class="chip" data-bshow="${k}" aria-pressed="${!!S.bshow[k]}">${l}</button>`).join("")}</div>
+  <div id="bcov">${coverageList()}</div></div>`;
+  h+=`<div class="card"><h3>並びを呼び出す</h3><label class="f" for="bpreset">配置</label><select id="bpreset">${Object.entries(BOARD_PRESETS).map(([k,v])=>`<option value="${k}" ${B.preset===k?"selected":""}>${esc(v.n)}</option>`).join("")}</select><div class="row"><button class="btn sub" data-bpreset="1">この配置にする</button><button class="btn sub" data-bclear="1">書き込みを全部消す</button></div></div>`;
+  const boards=[...(D.boards||[])].sort((a,b)=>(b.updated||"")>(a.updated||"")?1:-1);
+  h+=`<div class="card"><h3>保存したボード</h3>${boards.length?`<div>${boards.map(x=>`<div class="player"><div class="nm"><b>${esc(x.name)}</b><span class="muted">${x.updated?esc(x.updated.slice(0,10).replace(/-/g,"/")):""}</span></div><button class="icon-btn" data-bload="${esc(x.id)}">開く</button>${D.canWrite?`<button class="icon-btn" data-bdel="${esc(x.id)}">削除</button>`:""}</div>`).join("")}</div>`:`<p class="muted">まだありません。作戦を名前をつけて保存しておけます。</p>`}
+  ${D.canWrite?`<form id="fb" class="row" style="flex-wrap:nowrap"><input type="text" id="bname" maxlength="30" placeholder="例：相手レフト対策" aria-label="ボードの名前"><button class="btn" type="submit" style="white-space:nowrap">保存</button></form><p class="err" id="berr" role="alert"></p><p class="why">保存したボードは「データの受け渡し」で名簿などと一緒にメンバーへ送れます。</p>`:""}</div>`;
+  return h;
+}
+function svgPt(svg,e){ const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const m=svg.getScreenCTM(); return m?pt.matrixTransform(m.inverse()):{x:0,y:0}; }
+function redrawBoard(){ const svg=document.getElementById("board"); if(svg) svg.innerHTML=boardSVGInner(); const c=document.getElementById("bcov"); if(c) c.innerHTML=coverageList(); }
+function setupBoard(){
+  const svg=document.getElementById("board"); if(!svg) return;
+  let drag=null;
+  svg.addEventListener("pointerdown",e=>{
+    const p=svgPt(svg,e);
+    if(S.bmode==="pen"){ drag={pen:true,st:[[Math.round(p.x),Math.round(p.y)]]}; S.board.strokes.push(drag.st); }
+    else { const g=e.target.closest("[data-pid],[data-atk]"); if(!g) return; drag=g.dataset.atk?{atk:true}:{pid:g.dataset.pid}; }
+    S.dragging=true; try{ svg.setPointerCapture(e.pointerId); }catch(err){} e.preventDefault();
+  });
+  svg.addEventListener("pointermove",e=>{
+    if(!drag) return; const p=svgPt(svg,e);
+    if(drag.pen){ const last=drag.st[drag.st.length-1]; if(Math.hypot(p.x-last[0],p.y-last[1])>3) drag.st.push([Math.round(p.x),Math.round(p.y)]); }
+    else if(drag.atk){ S.board.atk.x=clamp(Math.round(p.x),12,BW-12); S.board.atk.y=clamp(Math.round(p.y),14,NET-8); }
+    else { const pl=S.board.players.find(x=>x.id===drag.pid); if(pl){ pl.x=clamp(Math.round(p.x),12,BW-12); pl.y=clamp(Math.round(p.y),NET+10,BH-12); } }
+    redrawBoard();
+  });
+  const end=()=>{ if(!drag) return; if(drag.pen&&drag.st.length<2) S.board.strokes.pop(); drag=null; S.dragging=false; saveBoardCur(); redrawBoard(); if(render.pending){ render.pending=false; } };
+  svg.addEventListener("pointerup",end); svg.addEventListener("pointercancel",end);
+}
+
 /* ---------- render & events ---------- */
 function render(){
   if(S.dragging){ render.pending=true; return; }
@@ -636,7 +735,7 @@ function render(){
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   $("#who").textContent = S.mine ? POS[S.mine].name : "";
   const q=$("#q"); if(q) q.addEventListener("input",e=>{ S.q=e.target.value; const pos=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(pos,pos); });
-  setupDrag();
+  setupDrag(); setupBoard();
   const p=$("#ppl"); if(p) p.addEventListener("change",e=>{ const n=Math.round(+e.target.value); S.ppl=Math.min(40,Math.max(1,isFinite(n)&&n>0?n:S.ppl)); render(); });
 }
 /* ---------- serve order drag ---------- */
@@ -679,7 +778,7 @@ function dragEnd(){
 }
 function freshRender(){ render.reset=true; render(); }
 document.addEventListener("click",e=>{
-  const t = e.target.closest("[data-tab],[data-tsub],[data-form],[data-pos],[data-skill],[data-target],[data-mine],[data-theme],[data-done],[data-ppl],[data-spin],[data-kiso],[data-teamsub],[data-edit-r],[data-edit-e],[data-cancel],[data-del-r],[data-del-e],[data-past],[data-men],[data-lu],[data-luset],[data-lupos],[data-assign],[data-unassign],[data-svmove],[data-copyset],[data-luback],[data-del-l],[data-regonly],[data-export],[data-import]");
+  const t = e.target.closest("[data-tab],[data-tsub],[data-form],[data-pos],[data-skill],[data-target],[data-mine],[data-theme],[data-done],[data-ppl],[data-spin],[data-kiso],[data-teamsub],[data-edit-r],[data-edit-e],[data-cancel],[data-del-r],[data-del-e],[data-past],[data-men],[data-lu],[data-luset],[data-lupos],[data-assign],[data-unassign],[data-svmove],[data-copyset],[data-luback],[data-del-l],[data-regonly],[data-export],[data-import],[data-bmode],[data-bshow],[data-bundo],[data-bpreset],[data-bclear],[data-bload],[data-bdel]");
   if(!t) return;
   const d = t.dataset;
   if(d.done!==undefined){ S.done[d.done]=t.checked; return; }
@@ -712,6 +811,13 @@ document.addEventListener("click",e=>{
   else if(d.svmove){ const [i,dir]=d.svmove.split(":").map(Number); const sd=syncServe(setData(lu(),S.luSet)); const j=i+dir; if(j<0||j>=sd.serve.length) return; [sd.serve[i],sd.serve[j]]=[sd.serve[j],sd.serve[i]]; return writeSet(S.luSet,sd); }
   else if(d.copyset){ const prev=SETS[SETS.indexOf(S.luSet)-1]; return writeSet(S.luSet,setData(lu(),prev)); }
   else if(d.delL){ askDelete("lineups",d.delL,t); return; }
+  else if(d.bmode){ S.bmode=d.bmode; }
+  else if(d.bshow){ S.bshow[d.bshow]=!S.bshow[d.bshow]; }
+  else if(d.bundo){ S.board.strokes.pop(); saveBoardCur(); }
+  else if(d.bpreset){ const k=$("#bpreset").value; const keep=S.board.strokes; S.board=clonePreset(k); saveBoardCur(); }
+  else if(d.bclear){ S.board.strokes=[]; saveBoardCur(); }
+  else if(d.bload){ const b=(D.boards||[]).find(x=>x.id===d.bload); if(b){ S.board={preset:b.preset||"",players:(b.players||[]).map(x=>({...x})),atk:{...(b.atk||{x:150,y:60})},strokes:(b.strokes||[]).map(st=>typeof st==="string"?st.split(" ").map(q=>q.split(",").map(Number)):st.map(p=>[...p]))}; saveBoardCur(); window.scrollTo(0,0); } }
+  else if(d.bdel){ askDelete("boards",d.bdel,t); return; }
   else if(d.export){ S.xferOpen=true; const txt=exportJSON();
     if(d.export==="copy"){ (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{S.xferMsg="コピーしました。LINEなどに貼り付けて送れます。";render();}).catch(()=>{S.xferMsg="コピーできませんでした。";render();}); return; }
     try{ const a=document.createElement("a"); const day=new Date().toISOString().slice(0,10); a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"})); a.download=`volley-book-${day}.json`; document.body.appendChild(a); a.click(); a.remove(); S.xferMsg=STANDALONE?"ファイルを書き出しました。":"この画面ではファイルを保存できない場合があります。うまくいかなければ「文字でコピー」を使ってください。"; }catch(err){ S.xferMsg="書き出せませんでした。「文字でコピー」を使ってください。"; }
@@ -720,7 +826,7 @@ document.addEventListener("click",e=>{
   render();
 });
 function askDelete(col,id,btn){
-  if(btn.dataset.armed){ remove(col,id).then(()=>{ if(col==="roster") S.editR=null; else if(col==="events") S.editE=null; else S.luId=null; freshRender(); }); return; }
+  if(btn.dataset.armed){ remove(col,id).then(()=>{ if(col==="roster") S.editR=null; else if(col==="events") S.editE=null; else if(col==="lineups") S.luId=null; freshRender(); }); return; }
   btn.dataset.armed="1"; btn.textContent="もう一度押すと削除"; setTimeout(()=>{ if(btn.isConnected){ delete btn.dataset.armed; btn.textContent="削除"; } },4000);
 }
 function spin(){
@@ -744,6 +850,12 @@ document.addEventListener("submit",async e=>{
     if(taken.includes(num)){ err.textContent=`背番号${num}はすでに使われています。`; return; }
     const ok = await save("roster",S.editR,{num:num,name,pos:$("#rpos").value,reg:$("#rreg").checked});
     if(ok){ S.editR=null; freshRender(); }
+  }
+  if(e.target.id==="fb"){
+    const name=$("#bname").value.trim(); if(!name){ $("#berr").textContent="ボードの名前を入れてください。"; return; }
+    const B=S.board; const body={name,preset:B.preset||"",players:B.players,atk:B.atk,strokes:B.strokes.map(st=>st.map(p=>p[0]+","+p[1]).join(" ")),updated:new Date().toISOString()};
+    if(JSON.stringify(body).length>200000){ $("#berr").textContent="書き込みが多すぎて保存できません。一部を消してください。"; return; }
+    const id=await save("boards",null,body); if(id){ S.xferMsg=""; freshRender(); }
   }
   if(e.target.id==="fl"){
     const name=$("#lname").value.trim(); if(!name){ $("#lerr").textContent="オーダー表の名前を入れてください。"; return; }
