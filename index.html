@@ -19,7 +19,7 @@
 :root{
   /* layout: phone-first single column, sticky bottom tab bar; court diagrams lead each view */
   --bg:#F3F5F8; --surface:#FFFFFF; --ink:#16213A; --muted:#5D6880; --line:#DCE1EA;
-  --accent:#F2A900; --accent-ink:#5A3E00; --court:#E8EEF7; --atk:#D9481F; --def:#17806A; --set:#5F6673;
+  --accent:#F2A900; --accent-ink:#5A3E00; --court:#E8EEF7; --floor:#F0F4F9; --lob:#E07A12; --atk:#D9481F; --def:#17806A; --set:#5F6673;
   --atk-bg:#FCE7DF; --def-bg:#DDF2EC; --set-bg:#ECEEF1; --danger:#B42318;
   --brand:var(--ink); --brand-ink:var(--bg);
   --display:"Zen Maru Gothic","Zen Kaku Gothic New","Hiragino Sans",sans-serif;
@@ -29,13 +29,13 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0F1524; --surface:#18213A; --ink:#E9EDF5; --muted:#A3AEC4; --line:#2B3654;
-    --accent:#F5B82E; --accent-ink:#2A1C00; --court:#1E2A47; --atk:#FF7A52; --def:#3CC4A2; --set:#A1A8B5;
+    --accent:#F5B82E; --accent-ink:#2A1C00; --court:#1E2A47; --floor:#1B2541; --lob:#FFA552; --atk:#FF7A52; --def:#3CC4A2; --set:#A1A8B5;
     --atk-bg:#4A2216; --def-bg:#123C33; --set-bg:#2B3348; --danger:#FF8A7A; color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0F1524; --surface:#18213A; --ink:#E9EDF5; --muted:#A3AEC4; --line:#2B3654;
-  --accent:#F5B82E; --accent-ink:#2A1C00; --court:#1E2A47; --atk:#FF7A52; --def:#3CC4A2; --set:#A1A8B5;
+  --accent:#F5B82E; --accent-ink:#2A1C00; --court:#1E2A47; --floor:#1B2541; --lob:#FFA552; --atk:#FF7A52; --def:#3CC4A2; --set:#A1A8B5;
   --atk-bg:#4A2216; --def-bg:#123C33; --set-bg:#2B3348; --danger:#FF8A7A; color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -158,8 +158,8 @@ label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mu
 const POS = {
   S:{name:"セッター",grp:"set",duty:["2本目をトスにして攻撃を組み立てる","センター攻撃では3枚ブロックに入る"],rule:["1本目を触ったらすぐ「お願い！」","取るのは正面の強打とフェイントだけ"],cards:["toss"],kiso:"setter"},
   L:{name:"前衛レフト",grp:"atk",duty:["スパイク（得点源）とレフト側のブロック","ブロックに入らない時はインナー処理と次の攻撃準備"],rule:["2段トスでは触らず開いて「レフト！」","ネットから3m前後下がり、アタッカーに体を向ける"],cards:["spike","block"],kiso:"spiker"},
-  LC:{name:"前衛 左C",grp:"atk",duty:["ブロックの中心、速攻","反対側のブロック時は三角形の前の角"],rule:["第2セッターのトスで打てる準備をして呼ぶ","三角形では中央寄りの短いクロスを担当"],cards:["block","spike"],kiso:"spiker"},
-  RC:{name:"前衛 右C（第2セッター）",grp:"atk",duty:["ブロック、速攻","セッターの代わりにトスを上げる"],rule:["「お願い！」で「トス！」と言って入る","高く、ネットから離して。アンダーでもOK"],cards:["toss","block"],kiso:"spiker"},
+  LC:{name:"前衛 左C",grp:"atk",duty:["ブロックの中心、速攻","反対側のブロック時は三角形の前の角"],rule:["第2セッターのトスで打てる準備をして呼ぶ","三角形では中央寄りの短いクロスを担当"],cards:["block","spike","bquick"],kiso:"spiker"},
+  RC:{name:"前衛 右C（第2セッター）",grp:"atk",duty:["ブロック、速攻","セッターの代わりにトスを上げる"],rule:["「お願い！」で「トス！」と言って入る","高く、ネットから離して。アンダーでもOK"],cards:["toss","block","bquick"],kiso:"spiker"},
   R:{name:"前衛ライト",grp:"atk",duty:["スパイクとライト側のブロック","ブロックに入らない時はインナー処理と次の攻撃準備"],rule:["2段トスでは触らず開いて「ライト！」","ネットから3m前後下がり、アタッカーに体を向ける"],cards:["spike","block"],kiso:"spiker"},
   M:{name:"中衛（レシーブ専門）",grp:"def",duty:["サーブレシーブと強打レシーブの中心","ラリー中はフェイントとブロック後ろのボール"],rule:["関わる境界はすべて中衛優先","一番早く「オーライ」を出す"],cards:["recv","dig","basic"],kiso:"receiver"},
   BL:{name:"後衛L",grp:"def",duty:["左奥の強打、カバー、声出し","サイド攻撃時は三角形の奥"],rule:["1列目の頭上は全部自分のボール","中衛のオーライでカバーへ"],cards:["dig","recv"],kiso:"receiver"},
@@ -202,7 +202,7 @@ const RULES = [
 ];
 const CARD_GROUPS = [
   {h:"サーブ",ids:["floater","jfloat","jump","under","serveTarget"]},
-  {h:"攻撃",ids:["spike","toss"]},
+  {h:"攻撃",ids:["spike","bquick","toss"]},
   {h:"守備",ids:["basic","recv","dig","block"]},
   {h:"指導",ids:["myth"]}
 ];
@@ -232,7 +232,17 @@ const CARDS = {
       {h:"長いコースを打つコツ",b:["一番長いのはクロスの対角の奥","打点を高く前に取り、ボールの後ろ〜少し上を叩いて手首でドライブをかける","叩きつけるほど短くなる。基礎練の「ドライブ」と同じ感覚で、相手の足元より奥へ","ネットから離れたトスや2段トスは、長いコースが安全"]},
       {h:"ブロックアウトの狙い方",b:["狙うのはブロッカーの外側の手（サイドライン側）の指先〜手の外側","ブロックが完成していて抜けないとき、トスがネットに近いときに有効","強さより当てる場所。打点を少し高めに取り、外へ向けて振る"]}
     ],
-    timing:[["オープン","高い山なり","セッターが触る瞬間に1歩目（右足）を出し、トスの頂点に2歩目（左足）を合わせる","高い2段トスは早まらず、落ちてくる軌道を見て助走の速さを調整"],["平行","速く低く、サイドへ","セッターが触る瞬間に、2歩目（左足）がもう出ている状態で入る","トスを追って外へ。踏み切りはアンテナ寄り"],["Aクイック","セッターのすぐ前に低く","セッターが触る前に助走を始め、トスとほぼ同時に踏み切る","先に跳んで待ち、セッターに合わせてもらう"]]},
+    timing:[["オープン","高い山なり","セッターが触る瞬間に1歩目（右足）を出し、トスの頂点に2歩目（左足）を合わせる","高い2段トスは早まらず、落ちてくる軌道を見て助走の速さを調整"],["平行","速く低く、サイドへ","セッターが触る瞬間に、2歩目（左足）がもう出ている状態で入る","トスを追って外へ。踏み切りはアンテナ寄り"],["Aクイック","セッターのすぐ前に低く","セッターが触る前に助走を始め、トスとほぼ同時に踏み切る","先に跳んで待ち、セッターに合わせてもらう"],["Bクイック","セッターから2〜3m先へ、低く速く","セッターが触る前に助走を始め、トスが上がるのとほぼ同時に踏み切る（Aクイックより半拍遅い）","踏み切る位置をセッターと決めておき、毎回そこから跳ぶ"]]},
+  bquick:{t:"Bクイック",sub:"セッターから2〜3m離れた位置の速攻",point:"セッターから2〜3m離れた所で打つ速攻。トスが上がる前に助走を始め、踏み切る場所を毎回同じにする。",
+    rows:[["トスに追い越される・届かない","助走の始まりが遅い。トスを見てから動いている","セッターが触る前に入る"],["先に跳んで、落ちながら打つ","Aクイックと同じ感覚で、早く踏み切っている","Aより半拍遅く"],["ネットに触れる・ネットにかかる","ネットに近づきすぎて踏み切り、前に流れている","真上に跳ぶ"],["打つ位置が毎回ずれる","セッターとの距離の約束がない","踏み切りはいつもの場所"],["ブロックに捕まる","振りが大きくて遅れる、コースが毎回同じ","コンパクトに、打ち分け"]],
+    timing:[["Bクイック","セッターから2〜3m先へ、低く速く","セッターが触る前に助走を始め、トスが上がるのとほぼ同時に踏み切る（Aクイックより半拍遅い）","踏み切る位置をセッターと決めておき、毎回そこから跳ぶ"]],
+    tips:[
+      {h:"Bクイックとは",b:["Aクイックはセッターのすぐ前（約0.5〜1m）、Bクイックはそこから少し離れた約2〜3mの位置で打つ速攻","セッターがトスを上げる前に助走を始める攻撃。相手のブロックが揃う前に打てる"]},
+      {h:"助走と踏み切り",b:["踏み切る位置をセッターとの間で決め、床の目印（ラインや床の継ぎ目）で覚える","助走は短く2〜3歩。パスがセッターに返る間に入り始める","真上に跳ぶ。前に流れるとネットに触れる"]},
+      {h:"打ち方",b:["大きく振りかぶらず、肘を高く引いてコンパクトに振る","トスの勢いを使って、手首で方向を出す","基本はクロス。ブロックが寄ってきたらストレートやターンに打ち分ける"]},
+      {h:"セッター側のポイント",b:["低く、ネットと平行に、毎回同じ場所へ","高さはアタッカーが手を伸ばした所より少し上。アタッカーの手に「置く」つもりで","パスが乱れたら無理に使わず、オープンに切り替える。合図を決めておく"]},
+      {h:"9人制での使い方",b:["前衛の左C・右Cが打つことが多い","打たなくても、Bに入るだけで相手のブロックが1枚引きつけられ、サイドが打ちやすくなる"]}
+    ]},
   toss:{t:"オーバートス・2段トス",sub:"セッターの体の使い方・ハンドリング・距離の調整・バックトス",point:"セッターの一番の役目は、アタッカーが打ちやすいトスを上げること。距離は腕ではなく膝で調整する。",rows:[["ボールに回転がかかる","手のひらで触っている","指の腹で、おでこの前で"],["遠くへ飛ばない","腕だけで上げている","膝を使って、全身で押し出す"],["方向がぶれる","指先が目標を向いていない","指を目標へまっすぐ押し出す"],["トスがネット側に流れる","体の軸がぶれている","右足・右手で壁を作る"],["トスが安定しない","上げた後すぐ手を下ろしている","上げたら両手を空中に残す"],["2段トスが低い・近い","速さや距離を欲張っている","高く、ネットから離して"],["2段トスが間に合わない","判断と移動が遅い","トス！と言って先に入る"]],
     tips:[
       {h:"セッターの体の使い方",src:1,b:["ボールの下に入るときは、右足・右手を基準に軸（壁）を作り、体やトスがネット側に流れないようにする","最初から上げる方向を向かず、まずパスが飛んでくる方向（レフト側）に体を向けてボールに入り、そこから上げる","ジャンプトスは右足を軸に踏み込み、空中でのぶれを抑える","トスを上げた後は、両手を空中に残す（止める）。トスの精度が安定する","指先を目標に向けてまっすぐ押し出す"]},
@@ -400,10 +410,20 @@ function formation(k){
 }
 function saveFormation(k,patch){ const F={...(((D.settings||{}).formations)||{})}; F[k]={...(F[k]||{}),...patch}; saveSettings({formations:F}); }
 /* ---------- views ---------- */
+// 図のコート：ライン・3mライン・ネット・アンテナ。横300px＝10.5m。netTop=true ならネットが上
+function figCourt(h,netTop){
+  const m3=3*300/10.5, ny=netTop?2.5:h-2.5, ly=netTop?m3:h-m3;
+  let s=`<rect x="0" y="0" width="300" height="${h}" fill="var(--floor)"/><rect x="0" y="0" width="300" height="${h}" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="2"/>`;
+  s+=`<line x1="0" y1="${ly}" x2="300" y2="${ly}" stroke="var(--ink)" stroke-opacity=".35" stroke-width="1.2" stroke-dasharray="6 4"/><text x="296" y="${ly+(netTop?11:-3)}" text-anchor="end" font-size="9" fill="var(--muted)" font-family="var(--body)">3m</text>`;
+  s+=`<rect x="-12" y="${ny-2.5}" width="324" height="5" fill="var(--ink)"/>`;
+  [0,300].forEach(x=>{ s+=`<rect x="${x-3}" y="${ny-10}" width="6" height="20" rx="2" fill="#fff" stroke="#C0261B" stroke-width="1"/>`; for(let i=0;i<3;i++) s+=`<rect x="${x-3}" y="${ny-10+i*7.5}" width="6" height="3.5" fill="#C0261B"/>`; });
+  return s;
+}
+const FIG_VB=(h,netTop)=>netTop?`-14 -12 328 ${h+16}`:`-14 -4 328 ${h+16}`;
 function courtSVG(key, sel, fo, id){
-  const f = fo||formation(key); let s = `<svg ${id?`id="${id}" style="touch-action:none;user-select:none;-webkit-user-select:none"`:""} viewBox="0 0 300 300" role="img" aria-label="${esc(f.label)}の配置図">`+courtInner(key,sel,f)+`</svg>`; return s; }
+  const f = fo||formation(key); let s = `<svg ${id?`id="${id}" style="touch-action:none;user-select:none;-webkit-user-select:none"`:""} viewBox="${FIG_VB(300,true)}" role="img" aria-label="${esc(f.label)}の配置図">`+courtInner(key,sel,f)+`</svg>`; return s; }
 function courtInner(key, sel, f){ let s="";
-  s += `<rect x="1" y="1" width="298" height="298" rx="4" fill="var(--court)" stroke="var(--line)"/><rect x="0" y="0" width="300" height="5" fill="var(--ink)"/>`;
+  s += figCourt(300,true);
   if(key==="recv"||f.from==="recv") s += `<line x1="10" y1="160" x2="290" y2="160" stroke="var(--muted)" stroke-dasharray="4 4"/>`;
   f.tri.forEach(t=>{ const p=t.map(k=>f.pts[k]); if(p.some(q=>!q)) return; s+=`<polygon points="${p.map(q=>q.join(",")).join(" ")}" fill="var(--def)" fill-opacity=".10" stroke="var(--def)" stroke-dasharray="5 4" stroke-width="1.2"/>`; });
   Object.entries(f.pts).forEach(([k,[x,y]])=>{
@@ -414,8 +434,8 @@ function courtInner(key, sel, f){ let s="";
 }
 function targets(){ const t=(D.settings||{}).serveTargets; return Array.isArray(t)&&t.length?t:TARGETS; }
 function targetSVG(sel,id){
-  let s = `<svg ${id?`id="${id}" style="touch-action:none;user-select:none;-webkit-user-select:none"`:""} viewBox="0 0 300 300" role="img" aria-label="サーブの狙い所（相手コート）">`;
-  s += `<rect x="1" y="1" width="298" height="298" rx="4" fill="var(--court)" stroke="var(--line)"/><rect x="0" y="295" width="300" height="5" fill="var(--ink)"/>`;
+  let s = `<svg ${id?`id="${id}" style="touch-action:none;user-select:none;-webkit-user-select:none"`:""} viewBox="${FIG_VB(300,false)}" role="img" aria-label="サーブの狙い所（相手コート）">`;
+  s += figCourt(300,false);
   s += `<text x="150" y="288" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="var(--body)">ネット（こちら側から打つ）</text>`;
   const ghost = [[40,95],[95,95],[150,95],[205,95],[260,95],[65,230],[150,230],[235,230]];
   s += `<g transform="translate(0,-10)">`;
@@ -491,7 +511,7 @@ function setupFormEdit(){
   svg.addEventListener("pointerup",end); svg.addEventListener("pointercancel",end);
 }
 function patternSVG(pt){
-  let s=`<svg viewBox="0 0 300 280" role="img" aria-label="${pt.name}の配置図"><rect x="1" y="1" width="298" height="278" rx="4" fill="var(--court)" stroke="var(--line)"/><rect x="0" y="0" width="300" height="5" fill="var(--ink)"/>`;
+  let s=`<svg viewBox="${FIG_VB(280,true)}" role="img" aria-label="${pt.name}の配置図">`+figCourt(280,true);
   s+=`<line x1="10" y1="90" x2="290" y2="90" stroke="var(--line)" stroke-dasharray="4 4"/><line x1="10" y1="190" x2="290" y2="190" stroke="var(--line)" stroke-dasharray="4 4"/>`;
   pt.pts.forEach(([l,x,y,g])=>{ const G=GRP[g]; s+=`<circle cx="${x}" cy="${y}" r="19" fill="${G.bg}" stroke="${G.c}" stroke-width="1.4"/><text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="700" fill="${G.c}" font-family="var(--body)">${l}</text>`; });
   return s+`</svg>`;
@@ -523,7 +543,7 @@ function viewSkills(){
       h += t ? `<div class="card"><div class="row"><span class="num">${t.n}</span><div><span class="tag" style="--c:var(--accent-ink);--tbg:var(--accent)">${t.tag}</span><h3>${esc(t.h)}</h3></div></div><p>${esc(t.b)}</p></div>` : `<div class="stack">${targets().map(t=>`<button class="sym-row" data-target="${t.n}"><b>${t.n}. ${esc(t.h)}</b><span class="c">${esc(t.b)}</span></button>`).join("")}</div>`;
       h += `<div class="card"><h4>おすすめの順番（1本制）</h4><ol class="clean"><li>まず入れる（全員）</li><li>人と人の間、1列目と後衛の間を狙う</li><li>慣れてきたら相手エースを狙う</li><li>ライン際は余裕があるときだけ</li></ol></div>`;
     }
-    if(c.timing) h += `<div class="card"><h4>助走のタイミング</h4><div style="overflow-x:auto"><table class="t"><tr><th>攻撃</th><th>トス</th><th>助走開始・踏み切り</th></tr>${c.timing.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}<br><span class="why">${esc(r[3])}</span></td></tr>`).join("")}</table></div><p class="why">足は右利きの場合（左利きは左右逆）。オープン・平行のタイミングは動画まとめより。セッターのトスの速さで変わるので、チームのセッターと合わせて微調整する。</p></div>`;
+    if(c.timing) h += `<div class="card"><h4>助走のタイミング</h4><div style="overflow-x:auto"><table class="t"><tr><th>攻撃</th><th>トス</th><th>助走開始・踏み切り</th></tr>${c.timing.map(r=>`<tr><td style="white-space:nowrap"><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}<br><span class="why">${esc(r[3])}</span></td></tr>`).join("")}</table></div><p class="why">足は右利きの場合（左利きは左右逆）。${S.skill==="spike"?"オープン・平行のタイミングは動画まとめより。":""}セッターのトスの速さで変わるので、チームのセッターと合わせて微調整する。</p></div>`;
     h += tipsBlock(c);
     if(c.tips&&c.tips.some(t=>t.src)) h += `<p class="why">「動画まとめ」はキャプテンが集めたYouTube動画の要約から追加した内容です。</p>`;
     if(c.rows.length) h += `<p class="muted">${esc(c.rowsLabel||"症状 → 原因 → 声かけ")}</p><div class="stack">${c.rows.map(r=>`<div class="sym-row"><b>${esc(r[0])}</b><span class="c">${esc(r[1])}</span><span><span class="cue">「${esc(r[2])}」</span></span></div>`).join("")}</div>`;
@@ -577,8 +597,8 @@ function viewPractice(){
 function pname(id){ const p=player(id); return p?p.name:"（名簿から削除）"; }
 function pnum(id){ const p=player(id); return p?String(p.num??""):"-"; }
 function lineupCourt(sd,editable){
-  const f=formation("recv"); let s=`<svg viewBox="0 0 300 300" role="img" aria-label="オーダーの配置">`;
-  s+=`<rect x="1" y="1" width="298" height="298" rx="4" fill="var(--court)" stroke="var(--line)"/><rect x="0" y="0" width="300" height="5" fill="var(--ink)"/>`;
+  const f=formation("recv"); let s=`<svg viewBox="${FIG_VB(300,true)}" role="img" aria-label="オーダーの配置">`;
+  s+=figCourt(300,true);
   POS_ORDER.forEach(k=>{ const [x,y0]=f.pts[k]; const y=k==="S"?y0+8:y0; const id=sd.pos[k], g=GRP[POS[k].grp], on=S.luPos===k;
     const sv = id? sd.serve.indexOf(id)+1 : 0;
     s+=`<g class="pl" ${editable?`tabindex="0" role="button" data-lupos="${k}"`:""} aria-label="${POS[k].name}${id?"："+esc(pname(id)):"：未設定"}">`;
@@ -737,70 +757,176 @@ function viewTeam(){
 }
 
 /* ---------- tactics whiteboard ---------- */
-const BW=300, NET=120, BH=420, OPP_TOP=0;
-function boardPresets(){
-  const out={};
-  const team=(k)=>Object.entries(formation(k).pts).map(([id,[x,y]])=>({id,label:SHORT[id],grp:POS[id].grp,x,y:y+NET}));
+// 一般の9人制コート（横10.5m）を横300pxで描く。1m ≒ 28.6px
+const BW=300, NET=120, BH=420, M1=BW/10.5, FZ=40, FZB=30;
+const BKINDS=[["dig","相手のスパイク"],["atk","うちのスパイク"],["recv","相手のサーブ"],["srv","うちのサーブ"]];
+const BGRP={...GRP,opp:{c:"var(--ink)",bg:"var(--surface)"}};
+const OPPL={S:"S",L:"前",LC:"前",RC:"前",R:"前",M:"中",BL:"後",BC:"後",BR:"後"};
+const PR=17, GAP=2*PR;                       // 駒の半径。駒どうしはくっついた状態（中心間2r）より近づかない
+const HAND=0.25*M1;                          // ブロックの手の幅：片側0.25m（1人約0.5m）
+const SHADOW_D=4.5*M1;                       // ブロックの陰はネットから約4.5mまで
+const LOB_NEAR=NET+4*M1, LOB_FAR=NET+6*M1;   // 山なりでブロックを越えるボールの落下帯：4〜6m
+const CENTER_W=1.2*M1;                       // 中央から±1.2m以内はセンター攻撃として左右両方のコースを出す
+// うちのスパイク：うちのメンバーの位置（x, ネットからの距離px）。打つ人は赤い丸
+const MINE={
+  aleft:{S:[95,45],LC:[72,75],M:[45,92],RC:[175,62],R:[258,80],BL:[55,205],BC:[150,235],BR:[242,205]},
+  acenter:{S:[110,40],L:[45,85],RC:[195,60],R:[258,85],M:[150,92],BL:[58,210],BC:[150,240],BR:[242,210]},
+  aright:{S:[205,45],RC:[228,75],M:[255,92],LC:[125,62],L:[42,80],BL:[58,205],BC:[150,235],BR:[245,205]}
+};
+// うちのサーブ：相手の並び（x, ネットからの距離px）
+const SRV_PRE={
+  sbase:{n:"相手：横1列＋後衛3人",pts:{S:[200,30],L:[40,95],LC:[95,95],M:[150,95],RC:[205,95],R:[260,95],BL:[65,230],BC:[150,230],BR:[235,230]}},
+  sfront:{n:"相手：前衛が前に残る",pts:{S:[150,25],L:[40,40],R:[260,40],LC:[95,115],RC:[205,115],M:[150,125],BL:[65,228],BC:[150,245],BR:[235,228]}}
+};
+const SN=BW, SB=2*BW;                        // うちのサーブ：相手コートは y=0〜SN、うちのコートは SN〜SB
+// 初期配置のブロッカーは、近い者どうしをぴったりくっつける（間は抜けない）
+function snapBlock(list){
+  const bs=list.filter(p=>p.y>NET&&p.y<=NET+30).sort((a,b)=>a.x-b.x);
+  for(let i=1;i<bs.length;i++){ const d=bs[i].x-bs[i-1].x; if(d>GAP&&d<=GAP+12){ const sh=(d-GAP)/2; for(let j=0;j<i;j++) bs[j].x+=sh; for(let j=i;j<bs.length;j++) bs[j].x-=sh; } }
+  return list;
+}
+function boardPresets(kind){
+  kind=kind||S.bkind; const out={};
+  if(kind==="atk"){
+    // 相手の守備は、うちの配置（サイド攻撃・センター攻撃の守り）を「うちから見た向き」に置き直す
+    const opp=(k,mir)=>snapBlock(Object.entries(formation(k).pts).map(([id,[x,y]])=>({id:"o"+id,label:OPPL[id],grp:"opp",x:mir?BW-x:x,y:y+NET})));
+    const mine=(k)=>Object.entries(MINE[k]).map(([id,[x,d]])=>({id,label:SHORT[id],grp:POS[id].grp,x,y:NET-d}));
+    out.aleft={n:"うちのレフト攻撃",players:opp("side",true),mine:mine("aleft"),atk:{x:38,y:100}};
+    out.acenter={n:"うちのセンター攻撃",players:opp("center",false),mine:mine("acenter"),atk:{x:150,y:100}};
+    out.aright={n:"うちのライト攻撃",players:opp("side",false),mine:mine("aright"),atk:{x:262,y:100}};
+    return out;
+  }
+  if(kind==="srv"){
+    Object.entries(SRV_PRE).forEach(([k,v])=>{ out[k]={n:v.n,players:Object.entries(v.pts).map(([id,[x,d]])=>({id:"o"+id,label:OPPL[id],grp:id==="S"?"set":"opp",x:BW-x,y:SN-d})),atk:{x:150,y:60}}; });
+    return out;
+  }
+  const team=(k)=>snapBlock(Object.entries(formation(k).pts).map(([id,[x,y]])=>({id,label:SHORT[id],grp:POS[id].grp,x,y:y+NET})));
   sceneKeys().forEach(k=>{ const f=formation(k); out[k]={n:"うち："+f.label,players:team(k),atk:{x:k==="side"||f.from==="side"?262:150,y:k==="recv"||f.from==="recv"?60:100}}; });
+  if(kind==="dig") out.wide={n:"相手がアンテナの外から打つ",players:team("side"),atk:{x:BW+24,y:104}};
   PATTERNS.forEach(pt=>{ out["p"+pt.id]={n:pt.name+"（"+pt.kind.replace("（今の主流）","")+"）",players:pt.pts.map(([l,x,y,g],i)=>({id:"p"+i,label:l,grp:g,x,y:y+NET})),atk:{x:150,y:60}}; });
   return out;
 }
-const BKEY={dig:"vb-board-cur",recv:"vb-board-recv"};
-function loadBoardCur(kind){ try{ const v=JSON.parse(localStorage.getItem(BKEY[kind])||"null"); if(v&&Array.isArray(v.players)) return {kind,srv:{x:150},ball:{x:150,y:NET+170},atk:{x:150,y:100},...v}; }catch(e){} return null; }
-function clonePreset(k,kind){ const p=boardPresets()[k]||boardPresets().recv; return {kind,preset:k,players:p.players.map(x=>({...x})),atk:{...p.atk},srv:{x:150},ball:{x:150,y:NET+170},strokes:[]}; }
+const BDEF={dig:"side",recv:"recv",atk:"aleft",srv:"sbase"};
+const BKEY={dig:"vb-board-cur",recv:"vb-board-recv",atk:"vb-board-atk",srv:"vb-board-srv"};
+function ballDefault(kind){ return kind==="srv"?{x:150,y:SN-170}:{x:150,y:NET+170}; }
+function srvDefault(kind){ return kind==="srv"?{x:220}:{x:150}; }
+function normBoard(v,kind){ return {kind,preset:"",strokes:[],mine:[],srv:srvDefault(kind),ball:ballDefault(kind),atk:{x:150,y:100},...v,kind}; }
+function loadBoardCur(kind){ try{ const v=JSON.parse(localStorage.getItem(BKEY[kind])||"null"); if(v&&Array.isArray(v.players)) return normBoard(v,kind); }catch(e){} return null; }
+function clonePreset(k,kind){ const ps=boardPresets(kind), p=ps[k]||ps[BDEF[kind]]; return normBoard({preset:ps[k]?k:BDEF[kind],players:p.players.map(x=>({...x})),mine:(p.mine||[]).map(x=>({...x})),atk:{...p.atk}},kind); }
 S.bkind="dig";
-S.bs={dig:null,recv:null};
-Object.defineProperty(S,"board",{get(){ if(!S.bs[S.bkind]) S.bs[S.bkind]=loadBoardCur(S.bkind)||clonePreset(S.bkind==="recv"?"recv":"side",S.bkind); return S.bs[S.bkind]; },set(v){ S.bs[S.bkind]=v; }});
-S.bmode="move"; S.bshow={course:true,shadow:true,feint:true}; S.rshow={zone:true,seam:true};
+S.bs={dig:null,recv:null,atk:null,srv:null};
+Object.defineProperty(S,"board",{get(){ if(!S.bs[S.bkind]) S.bs[S.bkind]=loadBoardCur(S.bkind)||clonePreset(BDEF[S.bkind],S.bkind); return S.bs[S.bkind]; },set(v){ S.bs[S.bkind]=v; }});
+S.bmode="move"; S.bshow={course:true,shadow:true,feint:true,lob:true,follow:true}; S.rshow={zone:true,seam:true}; S.sshow={zone:true,seam:true,far:true};
 function saveBoardCur(){ try{ localStorage.setItem(BKEY[S.bkind],JSON.stringify(S.board)); }catch(e){} }
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const isAtk=()=>S.bkind==="atk";
+const TOP=()=>isAtk()?NET-BW:0;              // 打つ側のコートの一番奥（うちのスパイクではうちのコートを全部描く）
+const VTOP=()=>isAtk()?TOP()-FZB:0;
+const VH=()=>BH+FZB-VTOP();
+const FLIP=()=>VTOP()+BH+FZB;                // うちのスパイクは上下反転して「うちのコート（下）から相手コート（上）を見る」向きにする
+
+/* --- スパイク（相手・うち共通の計算） --- */
 function hitPoint(){ const a=S.board.atk; return {x:a.x,y:Math.min(a.y,NET-6)}; }
-function blockers(){ return S.board.players.filter(p=>p.y<=NET+30); }
-const HAND=11;
+function blockers(){ return S.board.players.filter(p=>p.y>NET&&p.y<=NET+30); }
+// ブロッカーの手の範囲。隣どうしがくっついていれば、間はすき間なしとしてつなげる
+function blockIv(){
+  const bs=blockers().slice().sort((a,b)=>a.x-b.x), iv=[];
+  bs.forEach(b=>{ const last=iv[iv.length-1];
+    if(last&&b.x-last.bx<=GAP+4&&Math.abs(b.y-last.by)<=GAP){ last.r=b.x+HAND; last.bx=b.x; last.by=b.y; }
+    else iv.push({l:b.x-HAND,r:b.x+HAND,bx:b.x,by:b.y}); });
+  return iv;
+}
 function projX(H,px,py,ty){ return H.x+(px-H.x)*(ty-H.y)/(py-H.y); }
-function isBlocked(H,T){ const xNet=projX(H,T.x,T.y,NET); return blockers().some(b=>Math.abs(xNet-b.x)<=HAND); }
+function isBlocked(H,T){ const x=projX(H,T.x,T.y,NET); return blockIv().some(v=>x>=v.l&&x<=v.r); }
+function hitterOutside(){ const x=S.board.atk.x; return x<0||x>BW; }
+// ボールはアンテナの内側を通らないといけない。ネットを通る位置がコート外なら、アンテナの内側を通るコースに直す
+function legal(H,T){
+  const cx=projX(H,T.x,T.y,NET);
+  if(cx>=4&&cx<=BW-4) return T;
+  const c=clamp(cx,4,BW-4), x=H.x+(c-H.x)*(T.y-H.y)/(NET-H.y);
+  if(x>=2&&x<=BW-2) return {x,y:T.y};
+  const sx=x<2?2:BW-2, y=NET+(sx-c)*(NET-H.y)/(c-H.x);   // サイドラインに先に落ちる
+  return {x:sx,y:clamp(y,NET+10,T.y)};
+}
+function lobZone(){
+  const bs=blockers(); if(!bs.length) return null; const H=hitPoint();
+  const l=Math.min(...bs.map(b=>b.x))-HAND, r=Math.max(...bs.map(b=>b.x))+HAND, cy=(LOB_NEAR+LOB_FAR)/2;
+  const bx=(l+r)/2, px=projX(H,bx,NET,cy), rx=clamp((r-l)/2+24,40,70);
+  return {cx:clamp(bx+(px-bx)*.35,rx,BW-rx),cy,rx,ry:(LOB_FAR-LOB_NEAR)/2+4};
+}
 function courses(){
-  const H=hitPoint(); const farX = H.x<BW/2 ? BW-2 : 2; const nearX = H.x<BW/2 ? 2 : BW-2;
-  return [
+  const H=hitPoint(); let cs;
+  if(Math.abs(H.x-BW/2)<=CENTER_W) cs=[
+    {k:"straight",n:"正面奥",T:{x:H.x,y:BH-4}},
+    {k:"crossL",n:"左クロス",T:{x:2,y:BH-4}},{k:"crossR",n:"右クロス",T:{x:BW-2,y:BH-4}},
+    {k:"innerL",n:"左インナー",T:{x:2,y:NET+95}},{k:"innerR",n:"右インナー",T:{x:BW-2,y:NET+95}}];
+  else { const farX=H.x<BW/2?BW-2:2; cs=[
     {k:"straight",n:"ストレート",T:{x:clamp(H.x,4,BW-4),y:BH-4}},
     {k:"cross",n:"クロス",T:{x:farX,y:BH-4}},
     {k:"inner",n:"インナー",T:{x:farX,y:NET+95}},
-    {k:"long",n:"センター奥",T:{x:BW/2+(farX-BW/2)*0.25,y:BH-4}}
-  ].map(c=>({...c,blocked:isBlocked(H,c.T)}));
+    {k:"long",n:"センター奥",T:{x:BW/2+(farX-BW/2)*0.25,y:BH-4}}]; }
+  cs=cs.map(c=>{ const T=legal(H,c.T); return {...c,T,blocked:isBlocked(H,T)}; });
+  const out=[]; cs.forEach(c=>{ const d=out.find(o=>Math.hypot(o.T.x-c.T.x,o.T.y-c.T.y)<14); if(d) d.n+="・"+c.n; else out.push(c); });
+  if(S.bshow.lob){ const z=lobZone(); if(z) out.push({k:"lob",n:isAtk()?"ブロック越え（軟打）":"ブロック越え（山なり）",T:{x:z.cx,y:z.cy},blocked:false}); }
+  return out;
 }
 function segDist(P,A,B){ const vx=B.x-A.x, vy=B.y-A.y; const t=clamp(((P.x-A.x)*vx+(P.y-A.y)*vy)/(vx*vx+vy*vy),0,1); const q={x:A.x+vx*t,y:A.y+vy*t}; return {d:Math.hypot(P.x-q.x,P.y-q.y),q}; }
 function coverage(){
   const H=hitPoint(); const defs=S.board.players.filter(p=>p.y>NET+30);
   return courses().map(c=>{
     if(c.blocked) return {...c,who:null};
-    const sy=c.k==="inner"?NET+30:NET+100; const A={x:H.x+(c.T.x-H.x)*((sy-H.y)/(c.T.y-H.y)),y:sy};
-    let best=null; defs.forEach(p=>{ const r=segDist(p,A,c.T); if(!best||r.d<best.d) best={p,...r}; });
+    let best=null;
+    if(c.k==="lob") defs.forEach(p=>{ const d=Math.hypot(p.x-c.T.x,p.y-c.T.y); if(!best||d<best.d) best={p,d,q:c.T}; });
+    else { const sy=c.k.startsWith("inner")?NET+30:NET+100; const A={x:H.x+(c.T.x-H.x)*((sy-H.y)/(c.T.y-H.y)),y:sy}; defs.forEach(p=>{ const r=segDist(p,A,c.T); if(!best||r.d<best.d) best={p,...r}; }); }
     return {...c,who:best};
   });
 }
+// うちのスパイクのフォロー範囲：打つ人のまわり、ネットから約0.2〜3.4m・左右約2.3m
+function followZone(){ const a=S.board.atk; return {cx:clamp(a.x,0,BW),cy:NET-1.8*M1,rx:2.3*M1,ry:1.6*M1}; }
+function inFollow(p){ const z=followZone(); return ((p.x-z.cx)/z.rx)**2+((p.y-z.cy)/z.ry)**2<=1; }
+
+/* --- 図の部品 --- */
+function antennas(y){ let s=""; [0,BW].forEach(x=>{ s+=`<rect x="${x-3}" y="${y-11}" width="6" height="22" rx="2" fill="#fff" stroke="#C0261B" stroke-width="1"/>`; for(let i=0;i<3;i++) s+=`<rect x="${x-3}" y="${y-11+i*8}" width="6" height="4" fill="#C0261B"/>`; }); return s; }
+function line3m(y,above){ return `<line x1="0" y1="${y}" x2="${BW}" y2="${y}" stroke="var(--ink)" stroke-opacity=".4" stroke-width="1.2" stroke-dasharray="6 4"/><text x="${BW-4}" y="${y+(above?-3:11)}" text-anchor="end" font-size="9" fill="var(--muted)" font-family="var(--body)">3m</text>`; }
+const LN=`stroke="var(--ink)" stroke-opacity=".6" stroke-width="2"`;
+function boardLines(netY,top,bottom,endLabel){
+  let s=`<line x1="0" y1="${top}" x2="0" y2="${bottom}" ${LN}/><line x1="${BW}" y1="${top}" x2="${BW}" y2="${bottom}" ${LN}/><line x1="0" y1="${bottom}" x2="${BW}" y2="${bottom}" ${LN}/>`;
+  if(endLabel) s+=`<text x="${BW/2}" y="${bottom+19}" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="var(--body)">${endLabel}</text>`;
+  s+=line3m(netY-3*M1,true)+line3m(netY+3*M1,true);
+  s+=`<rect x="${-FZ+4}" y="${netY-2}" width="${BW+2*FZ-8}" height="4" fill="var(--ink)"/>`+antennas(netY);
+  s+=`<text x="${-FZ+2}" y="${netY-15}" font-size="8.5" fill="#C0261B" font-weight="700" font-family="var(--body)">アンテナ</text><text x="${BW+FZ-2}" y="${netY-15}" text-anchor="end" font-size="8.5" fill="#C0261B" font-weight="700" font-family="var(--body)">アンテナ</text>`;
+  return s;
+}
+function piece(p,attr,thick){ const g=BGRP[p.grp]||BGRP.def; return `<g class="bp" ${attr}><circle cx="${p.x}" cy="${p.y}" r="${PR}" fill="${g.bg}" stroke="${g.c}" stroke-width="${thick?3:1.4}"/><text x="${p.x}" y="${p.y}" text-anchor="middle" dominant-baseline="central" font-size="${String(p.label).length>2?10:11}" font-weight="700" fill="${g.c}" font-family="var(--body)" pointer-events="none">${esc(p.label)}</text><circle cx="${p.x}" cy="${p.y}" r="24" fill="transparent"/></g>`; }
+function strokesSVG(){ return S.board.strokes.map(st=>st.length>1?`<polyline points="${st.map(p=>p.join(",")).join(" ")}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#bArrow)"/>`:"").join(""); }
+const ARROW=`<marker id="bArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ink)"/></marker>`;
+function ballSVG(bl){ return `<g class="bp" data-ball="1"><circle cx="${bl.x}" cy="${bl.y}" r="11" fill="var(--accent)" stroke="var(--ink)" stroke-width="1.5"/><path d="M${bl.x-11} ${bl.y} Q${bl.x} ${bl.y-6} ${bl.x+11} ${bl.y}M${bl.x} ${bl.y-11} Q${bl.x+5} ${bl.y} ${bl.x} ${bl.y+11}" fill="none" stroke="var(--ink)" stroke-width="1" pointer-events="none"/><circle cx="${bl.x}" cy="${bl.y}" r="22" fill="transparent"/></g>`; }
+function boardViewBox(){ return S.bkind==="srv"?`${-FZ} -30 ${BW+2*FZ} ${SB+90}`:`${-FZ} ${VTOP()} ${BW+2*FZ} ${VH()}`; }
+
+/* --- 相手のサーブ（レセプション） --- */
 function recvWeight(p){ return p.id==="M"?0.85:1; }
 function nearest2(x,y,list){ let a=null,b=null; list.forEach(p=>{ const d=Math.hypot(p.x-x,p.y-y)*recvWeight(p); if(!a||d<a.d){ b=a; a={p,d}; } else if(!b||d<b.d) b={p,d}; }); return [a,b]; }
 function recvReceivers(){ return S.board.players.filter(p=>p.grp!=="set"); }
 function recvSVGInner(){
   const B=S.board; let s="";
-  s+=`<defs><clipPath id="ourCourt"><rect x="0" y="${NET}" width="${BW}" height="${BH-NET}"/></clipPath><marker id="bArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ink)"/></marker></defs>`;
-  s+=`<rect x="0" y="0" width="${BW}" height="${NET}" fill="var(--surface)" stroke="var(--line)"/><text x="8" y="${NET-10}" font-size="11" fill="var(--muted)" font-family="var(--body)">相手コート（サーバーはエンドラインの外）</text>`;
-  s+=`<rect x="0" y="${NET}" width="${BW}" height="${BH-NET}" fill="var(--court)" stroke="var(--line)"/>`;
+  s+=`<defs><clipPath id="ourCourt"><rect x="0" y="${NET}" width="${BW}" height="${BH-NET}"/></clipPath>${ARROW}</defs>`;
+  s+=`<rect x="${-FZ}" y="0" width="${BW+2*FZ}" height="${BH+FZB}" fill="var(--bg)"/>`;
+  s+=`<rect x="0" y="0" width="${BW}" height="${NET}" fill="var(--surface)"/><text x="8" y="${NET-10}" font-size="11" fill="var(--muted)" font-family="var(--body)">相手コート（サーバーはエンドラインの外）</text>`;
+  s+=`<rect x="0" y="${NET}" width="${BW}" height="${BH-NET}" fill="var(--floor)"/>`;
   const rs=recvReceivers();
   if(rs.length&&(S.rshow.zone||S.rshow.seam)){ const c=15; s+=`<g clip-path="url(#ourCourt)" pointer-events="none">`;
     for(let y=NET;y<BH;y+=c) for(let x=0;x<BW;x+=c){ const [a,b]=nearest2(x+c/2,y+c/2,rs); if(!a) continue;
       if(S.rshow.seam&&b&&Math.abs(a.d-b.d)<11){ s+=`<rect x="${x}" y="${y}" width="${c}" height="${c}" fill="var(--accent)" fill-opacity=".55"/>`; }
       else if(S.rshow.zone){ const g=GRP[a.p.grp]||GRP.def; const alt=(rs.indexOf(a.p)%2)?.10:.2; s+=`<rect x="${x}" y="${y}" width="${c}" height="${c}" fill="${g.c}" fill-opacity="${alt}"/>`; } }
     s+=`</g>`; }
-  s+=`<rect x="0" y="${NET-2}" width="${BW}" height="4" fill="var(--ink)"/>`;
+  s+=boardLines(NET,0,BH,"エンドライン");
   const sv={x:B.srv.x,y:22}, bl=B.ball;
   s+=`<line x1="${sv.x}" y1="${sv.y}" x2="${bl.x}" y2="${bl.y}" stroke="var(--danger)" stroke-width="2" stroke-dasharray="7 4"/>`;
   const [a]=nearest2(bl.x,bl.y,rs); if(a) s+=`<line x1="${a.p.x}" y1="${a.p.y}" x2="${bl.x}" y2="${bl.y}" stroke="var(--def)" stroke-width="1.6" stroke-dasharray="2 3"/>`;
-  B.strokes.forEach(st=>{ if(st.length>1) s+=`<polyline points="${st.map(p=>p.join(",")).join(" ")}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#bArrow)"/>`; });
-  B.players.forEach(p=>{ const g=GRP[p.grp]||GRP.def; s+=`<g class="bp" data-pid="${esc(p.id)}"><circle cx="${p.x}" cy="${p.y}" r="17" fill="${g.bg}" stroke="${g.c}" stroke-width="1.4"/><text x="${p.x}" y="${p.y}" text-anchor="middle" dominant-baseline="central" font-size="${String(p.label).length>2?10:11}" font-weight="700" fill="${g.c}" font-family="var(--body)" pointer-events="none">${esc(p.label)}</text><circle cx="${p.x}" cy="${p.y}" r="24" fill="transparent"/></g>`; });
+  s+=strokesSVG();
+  B.players.forEach(p=>{ s+=piece(p,`data-pid="${esc(p.id)}"`,false); });
   s+=`<g class="bp" data-srv="1"><circle cx="${sv.x}" cy="${sv.y}" r="16" fill="var(--danger)"/><text x="${sv.x}" y="${sv.y}" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="700" fill="#fff" font-family="var(--body)" pointer-events="none">サーブ</text><circle cx="${sv.x}" cy="${sv.y}" r="24" fill="transparent"/></g>`;
-  s+=`<g class="bp" data-ball="1"><circle cx="${bl.x}" cy="${bl.y}" r="11" fill="var(--accent)" stroke="var(--ink)" stroke-width="1.5"/><path d="M${bl.x-11} ${bl.y} Q${bl.x} ${bl.y-6} ${bl.x+11} ${bl.y}M${bl.x} ${bl.y-11} Q${bl.x+5} ${bl.y} ${bl.x} ${bl.y+11}" fill="none" stroke="var(--ink)" stroke-width="1" pointer-events="none"/><circle cx="${bl.x}" cy="${bl.y}" r="22" fill="transparent"/></g>`;
-  return s;
+  return s+ballSVG(bl);
 }
 function recvInfo(){
   const B=S.board, rs=recvReceivers(); const [a,b]=nearest2(B.ball.x,B.ball.y,rs); if(!a) return "";
@@ -810,61 +936,163 @@ function recvInfo(){
   if(far) h+=`<p class="why">一番近い人からも遠いボールです。ここを狙われると崩れやすいので、配置を見直す候補です。</p>`;
   return h+`</div>`;
 }
-function boardSVGInner(){
-  if(S.bkind==="recv") return recvSVGInner();
-  const B=S.board, H=hitPoint(), sh=S.bshow; let s="";
-  s+=`<defs><clipPath id="ourCourt"><rect x="0" y="${NET}" width="${BW}" height="${BH-NET}"/></clipPath><marker id="bArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1L9 5L1 9z" fill="var(--ink)"/></marker><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--muted)" stroke-width="1.4" stroke-opacity=".5"/></pattern></defs>`;
-  s+=`<rect x="0" y="0" width="${BW}" height="${NET}" fill="var(--surface)" stroke="var(--line)"/><text x="8" y="16" font-size="11" fill="var(--muted)" font-family="var(--body)">相手コート（ネット際）</text>`;
-  s+=`<rect x="0" y="${NET}" width="${BW}" height="${BH-NET}" fill="var(--court)" stroke="var(--line)"/>`;
-  if(sh.course) s+=`<rect x="0" y="${NET}" width="${BW}" height="${BH-NET}" fill="var(--atk)" fill-opacity=".07"/>`;
-  if(sh.shadow){ s+=`<g clip-path="url(#ourCourt)">`; blockers().forEach(b=>{ const l=b.x-HAND, r=b.x+HAND; const xl=projX(H,l,NET,BH+400), xr=projX(H,r,NET,BH+400); s+=`<polygon points="${l},${NET} ${r},${NET} ${xr},${BH+400} ${xl},${BH+400}" fill="url(#hatch)"/><polygon points="${l},${NET} ${r},${NET} ${xr},${BH+400} ${xl},${BH+400}" fill="var(--muted)" fill-opacity=".14"/>`; }); s+=`</g>`; }
-  if(sh.feint){ const bs=blockers(); if(bs.length){ const cx=bs.reduce((a,b)=>a+b.x,0)/bs.length; s+=`<g clip-path="url(#ourCourt)"><ellipse cx="${cx}" cy="${NET}" rx="${42+bs.length*12}" ry="58" fill="var(--accent)" fill-opacity=".16" stroke="var(--accent)" stroke-dasharray="4 3"/></g><text x="${cx}" y="${NET+50}" text-anchor="middle" font-size="10" fill="var(--accent-ink)" font-family="var(--body)" style="paint-order:stroke" stroke="var(--court)" stroke-width="3">フェイント</text>`; } }
-  if(sh.course){ coverage().forEach(c=>{ const col=c.blocked?"var(--muted)":"var(--atk)"; s+=`<line x1="${H.x}" y1="${H.y}" x2="${c.T.x}" y2="${c.T.y}" stroke="${col}" stroke-width="${c.blocked?1.2:2}" stroke-dasharray="${c.blocked?"3 4":"7 4"}" stroke-opacity="${c.blocked?.6:.9}"/>`;
-      if(!c.blocked&&c.who) s+=`<line x1="${c.who.p.x}" y1="${c.who.p.y}" x2="${c.who.q.x}" y2="${c.who.q.y}" stroke="${c.who.d<=45?"var(--def)":"var(--danger)"}" stroke-width="1.4" stroke-dasharray="2 3"/>`;
-      const lx=clamp(c.T.x+(c.T.x<BW/2?6:-6),6,BW-6), ly=c.k==="long"?c.T.y-20:c.k==="inner"?c.T.y-8:c.T.y-6; s+=`<text x="${lx}" y="${ly}" text-anchor="${c.T.x<BW/2?"start":"end"}" font-size="10" font-weight="700" fill="${col}" font-family="var(--body)">${c.n}${c.blocked?"（ブロック）":""}</text>`; }); }
-  s+=`<rect x="0" y="${NET-2}" width="${BW}" height="4" fill="var(--ink)"/>`;
-  B.strokes.forEach(st=>{ if(st.length>1) s+=`<polyline points="${st.map(p=>p.join(",")).join(" ")}" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#bArrow)"/>`; });
-  B.players.forEach(p=>{ const g=GRP[p.grp]||GRP.def; const blk=p.y<=NET+30; s+=`<g class="bp" data-pid="${esc(p.id)}"><circle cx="${p.x}" cy="${p.y}" r="17" fill="${g.bg}" stroke="${g.c}" stroke-width="${blk?3:1.4}"/><text x="${p.x}" y="${p.y}" text-anchor="middle" dominant-baseline="central" font-size="${String(p.label).length>2?10:11}" font-weight="700" fill="${g.c}" font-family="var(--body)" pointer-events="none">${esc(p.label)}</text><circle cx="${p.x}" cy="${p.y}" r="24" fill="transparent"/></g>`; });
-  const a=B.atk; s+=`<g class="bp" data-atk="1"><circle cx="${a.x}" cy="${a.y}" r="17" fill="var(--danger)"/><text x="${a.x}" y="${a.y}" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="#fff" font-family="var(--body)" pointer-events="none">相手</text><circle cx="${a.x+13}" cy="${a.y-13}" r="6" fill="var(--accent)" stroke="var(--surface)" pointer-events="none"/><circle cx="${a.x}" cy="${a.y}" r="24" fill="transparent"/></g>`;
+
+/* --- うちのサーブ --- */
+function srvWeight(p){ return p.id==="oM"?0.85:1; }   // 相手の中衛は少し広めに守る計算
+function srvRecv(){ return S.board.players.filter(p=>p.grp!=="set"); }
+function srvNear2(x,y){ let a=null,b=null; srvRecv().forEach(p=>{ const d=Math.hypot(p.x-x,p.y-y)*srvWeight(p); if(!a||d<a.d){ b=a; a={p,d}; } else if(!b||d<b.d) b={p,d}; }); return [a,b]; }
+function srvSVGInner(){
+  const B=S.board, sh=S.sshow; let s="";
+  s+=`<defs><clipPath id="oppCourt"><rect x="0" y="0" width="${BW}" height="${SN}"/></clipPath>${ARROW}<marker id="sArw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L9 5L1 9z" fill="var(--danger)"/></marker></defs>`;
+  s+=`<rect x="${-FZ}" y="-30" width="${BW+2*FZ}" height="${SB+90}" fill="var(--bg)"/><rect x="0" y="0" width="${BW}" height="${SB}" fill="var(--floor)"/>`;
+  if(sh.zone||sh.seam||sh.far){ const c=15; s+=`<g clip-path="url(#oppCourt)" pointer-events="none">`;
+    for(let y=0;y<SN;y+=c) for(let x=0;x<BW;x+=c){ const [a,b]=srvNear2(x+c/2,y+c/2); if(!a) continue;
+      if(sh.far&&a.d>60) s+=`<rect x="${x}" y="${y}" width="${c}" height="${c}" fill="var(--def)" fill-opacity=".35"/>`;
+      else if(sh.seam&&b&&Math.abs(a.d-b.d)<11) s+=`<rect x="${x}" y="${y}" width="${c}" height="${c}" fill="var(--accent)" fill-opacity=".5"/>`;
+      else if(sh.zone){ const alt=(srvRecv().indexOf(a.p)%2)?.05:.12; s+=`<rect x="${x}" y="${y}" width="${c}" height="${c}" fill="var(--ink)" fill-opacity="${alt}"/>`; } }
+    s+=`</g>`; }
+  s+=`<line x1="0" y1="0" x2="${BW}" y2="0" ${LN}/>`+boardLines(SN,0,SB,"");
+  s+=`<text x="${BW/2}" y="-10" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="var(--body)">相手のエンドライン</text><text x="8" y="16" font-size="11" fill="var(--muted)" font-family="var(--body)">相手コート</text><text x="8" y="${SB-8}" font-size="11" fill="var(--muted)" font-family="var(--body)">うちのコート</text>`;
+  const sv={x:B.srv.x,y:SB+28}, bl=B.ball;
+  s+=`<path d="M${sv.x} ${sv.y} Q${(sv.x+bl.x)/2} ${SN-40} ${bl.x} ${bl.y+12}" fill="none" stroke="var(--danger)" stroke-width="2" stroke-dasharray="7 4" marker-end="url(#sArw)"/>`;
+  const [a]=srvNear2(bl.x,bl.y); if(a) s+=`<line x1="${a.p.x}" y1="${a.p.y}" x2="${bl.x}" y2="${bl.y}" stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="2 3"/>`;
+  s+=strokesSVG();
+  B.players.forEach(p=>{ s+=piece(p,`data-pid="${esc(p.id)}"`,false); });
+  s+=`<g class="bp" data-srv="1"><circle cx="${sv.x}" cy="${sv.y}" r="16" fill="var(--danger)"/><text x="${sv.x}" y="${sv.y}" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="700" fill="#fff" font-family="var(--body)" pointer-events="none">サーブ</text><circle cx="${sv.x}" cy="${sv.y}" r="24" fill="transparent"/></g>`;
+  return s+ballSVG(bl);
+}
+function srvInfo(){
+  const [a,b]=srvNear2(S.board.ball.x,S.board.ball.y); if(!a) return "";
+  const seam=b&&Math.abs(a.d-b.d)<11, far=a.d>60;
+  const [v,c,bg]=far?["誰からも遠い（狙い目）","var(--def)","var(--def-bg)"]:seam?["お見合いを誘える（狙い目）","var(--def)","var(--def-bg)"]:["正面で取られやすい","var(--muted)","var(--court)"];
+  return `<div class="stack"><div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:6px"><b style="font-size:13px">この落下点</b><span class="tag" style="--c:${c};--tbg:${bg}">${v}</span></div><div class="row" style="justify-content:space-between"><b style="font-size:13px">取りに行く人</b><span class="tag" style="--c:var(--ink);--tbg:var(--court)">相手の${esc(a.p.label)}${seam?` と ${esc(b.p.label)} の間`:""}</span></div></div>`;
+}
+
+/* --- スパイクのボード（相手のスパイク・うちのスパイク） --- */
+function spikeSVGInner(){
+  const B=S.board, H=hitPoint(), sh=S.bshow, A=isAtk(); let s="";
+  s+=`<defs><clipPath id="ourCourt"><rect x="0" y="${NET}" width="${BW}" height="${BH-NET}"/></clipPath><clipPath id="atkCourt"><rect x="0" y="${TOP()}" width="${BW}" height="${NET-TOP()}"/></clipPath>${ARROW}<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--muted)" stroke-width="1.4" stroke-opacity=".62"/></pattern><linearGradient id="fadeG" gradientUnits="userSpaceOnUse" x1="0" y1="${NET}" x2="0" y2="${NET+SHADOW_D}"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="fade" maskUnits="userSpaceOnUse" x="${-FZ}" y="${VTOP()}" width="${BW+2*FZ}" height="${VH()}"><rect x="0" y="${NET}" width="${BW}" height="${SHADOW_D}" fill="url(#fadeG)"/></mask></defs>`;
+  s+=`<rect x="${-FZ}" y="${VTOP()}" width="${BW+2*FZ}" height="${VH()}" fill="var(--bg)"/>`;
+  s+=`<rect x="0" y="${TOP()}" width="${BW}" height="${NET-TOP()}" fill="${A?"var(--floor)":"var(--surface)"}"/><text x="${A?BW-8:8}" y="${A?TOP()+16:16}" font-size="11" fill="var(--muted)" font-family="var(--body)"${A?' text-anchor="end"':""}>${A?"うちのコート":"相手コート（ネット際）"}</text>`;
+  s+=`<rect x="0" y="${NET}" width="${BW}" height="${BH-NET}" fill="var(--floor)"/>`;
+  if(sh.course) s+=`<rect x="0" y="${NET}" width="${BW}" height="${BH-NET}" fill="var(--atk)" fill-opacity=".04"/>`;
+  if(A&&sh.follow){ const z=followZone(); s+=`<g clip-path="url(#atkCourt)"><ellipse cx="${z.cx}" cy="${z.cy}" rx="${z.rx}" ry="${z.ry}" fill="var(--def)" fill-opacity=".12" stroke="var(--def)" stroke-width="1.3" stroke-dasharray="4 3"/></g><text x="${clamp(z.cx,40,BW-40)}" y="${z.cy-z.ry-4}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--def)" font-family="var(--body)" style="paint-order:stroke" stroke="var(--floor)" stroke-width="3">フォロー範囲</text>`; }
+  if(sh.shadow){ s+=`<g clip-path="url(#ourCourt)"><g mask="url(#fade)">`; blockIv().forEach(v=>{ const xl=projX(H,v.l,NET,BH+400), xr=projX(H,v.r,NET,BH+400); const pts=`${v.l},${NET} ${v.r},${NET} ${xr},${BH+400} ${xl},${BH+400}`; s+=`<polygon points="${pts}" fill="url(#hatch)"/><polygon points="${pts}" fill="var(--muted)" fill-opacity=".2"/>`; }); s+=`</g></g>`; }
+  if(sh.lob){ const z=lobZone(); if(z) s+=`<g clip-path="url(#ourCourt)"><ellipse cx="${z.cx}" cy="${z.cy}" rx="${z.rx}" ry="${z.ry}" fill="var(--lob)" fill-opacity=".16" stroke="var(--lob)" stroke-width="1.4" stroke-dasharray="4 3"/></g><text x="${z.cx}" y="${z.cy-z.ry+13}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--lob)" font-family="var(--body)" style="paint-order:stroke" stroke="var(--floor)" stroke-width="3">ブロック越え</text>`; }
+  if(sh.feint){ const bs=blockers(); if(bs.length){ const cx=bs.reduce((a,b)=>a+b.x,0)/bs.length; s+=`<g clip-path="url(#ourCourt)"><ellipse cx="${cx}" cy="${NET}" rx="${42+bs.length*12}" ry="58" fill="var(--accent)" fill-opacity=".16" stroke="var(--accent)" stroke-dasharray="4 3"/></g><text x="${cx}" y="${NET+50}" text-anchor="middle" font-size="10" fill="var(--accent-ink)" font-family="var(--body)" style="paint-order:stroke" stroke="var(--floor)" stroke-width="3">フェイント</text>`; } }
+  if(sh.course){ const center=Math.abs(H.x-BW/2)<=CENTER_W; coverage().forEach(c=>{ const lob=c.k==="lob", col=c.blocked?"var(--muted)":lob?"var(--lob)":"var(--atk)";
+      if(lob){ const mx=(H.x+c.T.x)/2, my=Math.min(H.y,c.T.y)-10; s+=`<path d="M${H.x} ${H.y} Q${mx} ${my-60} ${c.T.x} ${c.T.y}" fill="none" stroke="${col}" stroke-width="2" stroke-dasharray="7 4"/>`; }
+      else s+=`<line x1="${H.x}" y1="${H.y}" x2="${c.T.x}" y2="${c.T.y}" stroke="${col}" stroke-width="${c.blocked?1.2:2}" stroke-dasharray="${c.blocked?"3 4":"7 4"}" stroke-opacity="${c.blocked?.6:.9}"/>`;
+      if(!c.blocked&&c.who){ const far=c.who.d>45; s+=`<line x1="${c.who.p.x}" y1="${c.who.p.y}" x2="${c.who.q.x}" y2="${c.who.q.y}" stroke="${A?(far?"var(--def)":"var(--muted)"):(far?"var(--danger)":"var(--def)")}" stroke-width="1.4" stroke-dasharray="2 3"/>`; }
+      if(!lob){ const lx=clamp(c.T.x+(c.T.x<BW/2?6:-6),6,BW-6), ly=c.k==="long"||(c.k==="straight"&&center)?c.T.y-20:c.k.startsWith("inner")?c.T.y-8:c.T.y-6; s+=`<text x="${lx}" y="${ly}" text-anchor="${Math.abs(c.T.x-BW/2)<20?"middle":c.T.x<BW/2?"start":"end"}" font-size="10" font-weight="700" fill="${col}" font-family="var(--body)">${esc(c.n)}${c.blocked?"（ブロック）":""}</text>`; } }); }
+  s+=boardLines(NET,TOP(),BH,A?"相手のエンドライン":"エンドライン");
+  if(A) s+=`<line x1="0" y1="${TOP()}" x2="${BW}" y2="${TOP()}" ${LN}/><text x="${BW/2}" y="${TOP()-8}" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="var(--body)">うちのエンドライン</text>`;
+  if(sh.shadow) s+=`<line x1="0" x2="${BW}" y1="${NET+SHADOW_D}" y2="${NET+SHADOW_D}" stroke="var(--muted)" stroke-opacity=".35" stroke-dasharray="2 4"/><text x="${BW-6}" y="${NET+SHADOW_D+(A?-4:11)}" text-anchor="end" font-size="9" fill="var(--muted)" font-family="var(--body)">陰はここ（約4.5m）まで</text>`;
+  s+=strokesSVG();
+  B.players.forEach(p=>{ s+=piece(p,`data-pid="${esc(p.id)}"`,p.y>NET&&p.y<=NET+30); });
+  (B.mine||[]).forEach(p=>{ s+=piece(p,`data-mid="${esc(p.id)}"`,sh.follow&&inFollow(p)); });
+  const a=B.atk; s+=`<g class="bp" data-atk="1"><circle cx="${a.x}" cy="${a.y}" r="${PR}" fill="var(--danger)"/><text x="${a.x}" y="${a.y}" text-anchor="middle" dominant-baseline="central" font-size="${A?10:11}" font-weight="700" fill="#fff" font-family="var(--body)" pointer-events="none">${A?"うち":"相手"}</text><circle cx="${a.x+13}" cy="${a.y-13}" r="6" fill="var(--accent)" stroke="var(--surface)" pointer-events="none"/><circle cx="${a.x}" cy="${a.y}" r="24" fill="transparent"/></g>`;
+  if(A){ // 上下反転。文字だけは反転を戻す
+    s=s.replace(/<text x="([^"]+)" y="([^"]+)"/g,(m,x,y)=>`<text x="${x}" y="${-(+y)}" transform="scale(1 -1)"`);
+    s=`<g transform="translate(0 ${FLIP()}) scale(1 -1)">${s}</g>`; }
   return s;
 }
+function boardSVGInner(){ return S.bkind==="recv"?recvSVGInner():S.bkind==="srv"?srvSVGInner():spikeSVGInner(); }
 function coverageList(){
-  if(!S.bshow.course) return "";
-  return `<div class="stack">${coverage().map(c=>`<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:6px"><b style="font-size:13px">${c.n}</b>${c.blocked?`<span class="tag" style="--c:var(--muted);--tbg:var(--court)">ブロックで消えている</span>`:c.who?`<span class="tag" style="--c:${c.who.d<=45?"var(--def)":"var(--danger)"};--tbg:${c.who.d<=45?"var(--def-bg)":"var(--atk-bg)"}">${esc(c.who.p.label)}が${c.who.d<=45?"守れる":"遠い（空いている）"}</span>`:`<span class="muted">守る人なし</span>`}</div>`).join("")}</div>`;
+  if(!S.bshow.course) return ""; const A=isAtk();
+  let h=`<div class="stack">${coverage().map(c=>{ let tag;
+    if(c.blocked) tag=`<span class="tag" style="--c:var(--muted);--tbg:var(--court)">${A?"ブロックに止められる":"ブロックで消えている"}</span>`;
+    else if(!c.who) tag=`<span class="muted">${A?"守る人なし（狙い目）":"守る人なし"}</span>`;
+    else { const far=c.who.d>45; tag=A?(far?`<span class="tag" style="--c:var(--def);--tbg:var(--def-bg)">空いている（狙い目）</span>`:`<span class="tag" style="--c:var(--muted);--tbg:var(--court)">相手の${esc(c.who.p.label)}が拾いやすい</span>`)
+      :`<span class="tag" style="--c:${far?"var(--danger)":"var(--def)"};--tbg:${far?"var(--atk-bg)":"var(--def-bg)"}">${esc(c.who.p.label)}が${far?"遠い（空いている）":"守れる"}</span>`; }
+    return `<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:6px"><b style="font-size:13px">${esc(c.n)}</b>${tag}</div>`; }).join("")}`;
+  if(A&&S.bshow.follow){ const ins=(S.board.mine||[]).filter(inFollow), n=ins.length, ok=n>=3;
+    h+=`<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding-top:6px"><b style="font-size:13px">フォロー（ブロックに当たって戻るボール・フェイント返し）</b><span class="tag" style="--c:${ok?"var(--def)":"var(--danger)"};--tbg:${ok?"var(--def-bg)":"var(--atk-bg)"}">${n}人${n?"（"+ins.map(p=>esc(p.label)).join("・")+"）":""}</span></div><p class="why">打つ人のまわり（緑の点線）に入っている人を太枠で表示。3人以上いれば「囲めている」目安です。</p>`; }
+  const notes=[]; const H=hitPoint();
+  if(Math.abs(H.x-BW/2)<=CENTER_W) notes.push("中央付近から打つときは、左右両方のクロスとインナーを表示します。");
+  if(hitterOutside()) notes.push("アンテナの外から打つ場合も、ボールはアンテナの内側を通さないといけないので、コースはその分内側に絞られます。");
+  notes.push("ブロックの手の幅は1人約0.5m。くっついたブロッカーの間は抜けない計算です。陰はネットから約4.5mまで。コートは一般の9人制（横10.5m）で計算しています。");
+  return h+`</div><p class="why">${notes.join(" ")}</p>`;
+}
+function boardInfo(){ return S.bkind==="recv"?recvInfo():S.bkind==="srv"?srvInfo():coverageList(); }
+const BLEAD={
+  dig:"相手のアタッカー（赤）とうちの守備を動かして、守れるコースを確認するボードです。相手はアンテナの外まで動かせます。ネットから約1m以内にいる選手はブロックとして扱います。",
+  atk:"うちのアタッカー（赤）・うちのメンバー・相手のブロックと守備を全部動かせます。空いているコースと、打つ人のまわりのフォローを確認するボードです。下がうちのコート、上が相手コートです。",
+  recv:"選手・「サーブ」（相手サーバー）・黄色のボール（落下点）を指で動かせます。色分けは「いちばん近い人＝担当」のエリア、黄色のマスは2人の距離がほぼ同じ「お見合いゾーン」です。中衛は少し広めに担当する計算にしています。",
+  srv:"うちのサーブで相手のレシーブのどこを狙うかを考えるボードです。「サーブ」・黄色のボール（落下点）・相手の選手を動かせます。灰色の濃淡は相手それぞれの担当エリア、黄色のマスはお見合いゾーン、緑のマスは誰からも遠い場所です。"
+};
+function boardChips(){
+  const k=S.bkind;
+  if(k==="recv") return [["zone","担当エリア"],["seam","お見合いゾーン"]].map(([v,l])=>`<button class="chip" data-rshow="${v}" aria-pressed="${!!S.rshow[v]}">${l}</button>`).join("");
+  if(k==="srv") return [["zone","相手の担当エリア"],["seam","お見合いゾーン"],["far","空いている所"]].map(([v,l])=>`<button class="chip" data-sshow="${v}" aria-pressed="${!!S.sshow[v]}">${l}</button>`).join("");
+  return [["course","スパイクコース"],["shadow","ブロックの陰"],["feint","フェイント"],["lob","ブロック越え"]].concat(k==="atk"?[["follow","フォロー範囲"]]:[]).map(([v,l])=>`<button class="chip" data-bshow="${v}" aria-pressed="${!!S.bshow[v]}">${l}</button>`).join("");
 }
 function viewBoard(){
-  const B=S.board, rv=S.bkind==="recv";
-  let h=`<div class="seg" role="group" aria-label="ボードの種類"><button data-bkind="dig" aria-pressed="${!rv}">スパイク（ディグ）</button><button data-bkind="recv" aria-pressed="${rv}">サーブ（レセプション）</button></div>`;
-  h+= rv ? `<p class="muted">選手・「サーブ」（相手サーバー）・黄色のボール（落下点）を指で動かせます。色分けは「いちばん近い人＝担当」のエリア、黄色のマスは2人の距離がほぼ同じ「お見合いゾーン」です。中衛は少し広めに担当する計算にしています。</p>`
-    : `<p class="muted">選手と「相手」を指で動かせます。相手の打つ位置とブロックに合わせて、スパイクコース（赤）・ブロックの陰（斜線）・フェイントゾーン（黄）が変わります。ネットから約1m以内にいる選手はブロックとして扱います。</p>`;
+  const B=S.board, k=S.bkind;
+  let h=`<div class="seg" role="group" aria-label="ボードの種類" style="grid-auto-flow:row;grid-template-columns:1fr 1fr">${BKINDS.map(([v,l])=>`<button data-bkind="${v}" aria-pressed="${k===v}">${l}</button>`).join("")}</div>`;
+  h+=`<p class="muted">${BLEAD[k]}</p>`;
   h+=`<div class="card"><div class="row" style="justify-content:space-between"><div class="seg" role="group" aria-label="操作" style="flex:1"><button data-bmode="move" aria-pressed="${S.bmode==="move"}">動かす</button><button data-bmode="pen" aria-pressed="${S.bmode==="pen"}">ペン</button></div><button class="icon-btn" data-bundo="1">ペンを1つ戻す</button></div>
-  <div class="court"><svg id="board" viewBox="0 0 ${BW} ${BH}" role="img" aria-label="戦術ボード" style="touch-action:none;user-select:none;-webkit-user-select:none">${boardSVGInner()}</svg></div>
-  <div class="chips">${rv?[["zone","担当エリア"],["seam","お見合いゾーン"]].map(([k,l])=>`<button class="chip" data-rshow="${k}" aria-pressed="${!!S.rshow[k]}">${l}</button>`).join(""):[["course","スパイクコース"],["shadow","ブロックの陰"],["feint","フェイント"]].map(([k,l])=>`<button class="chip" data-bshow="${k}" aria-pressed="${!!S.bshow[k]}">${l}</button>`).join("")}</div>
-  <div id="bcov">${rv?recvInfo():coverageList()}</div></div>`;
-  h+=`<div class="card"><h3>並びを呼び出す</h3><label class="f" for="bpreset">配置</label><select id="bpreset">${Object.entries(boardPresets()).map(([k,v])=>`<option value="${k}" ${B.preset===k?"selected":""}>${esc(v.n)}</option>`).join("")}</select><div class="row"><button class="btn sub" data-bpreset="1">この配置にする</button><button class="btn sub" data-bclear="1">書き込みを全部消す</button></div></div>`;
-  const boards=[...(D.boards||[])].filter(x=>(x.kind||"dig")===S.bkind).sort((a,b)=>(b.updated||"")>(a.updated||"")?1:-1);
+  <div class="court"><svg id="board" viewBox="${boardViewBox()}" role="img" aria-label="戦術ボード" style="touch-action:none;user-select:none;-webkit-user-select:none">${boardSVGInner()}</svg></div>
+  <div class="chips">${boardChips()}</div>
+  <div id="bcov">${boardInfo()}</div></div>`;
+  h+=`<div class="card"><h3>並びを呼び出す</h3><label class="f" for="bpreset">配置</label><select id="bpreset">${Object.entries(boardPresets()).map(([v,o])=>`<option value="${v}" ${B.preset===v?"selected":""}>${esc(o.n)}</option>`).join("")}</select><div class="row"><button class="btn sub" data-bpreset="1">この配置にする</button><button class="btn sub" data-bclear="1">書き込みを全部消す</button></div></div>`;
+  const boards=[...(D.boards||[])].filter(x=>(x.kind||"dig")===k).sort((a,b)=>(b.updated||"")>(a.updated||"")?1:-1);
+  const ph={dig:"例：相手レフト対策",atk:"例：レフト攻撃のフォロー",recv:"例：サーブレシーブ基本形",srv:"例：相手の後衛の間を狙う"}[k];
   h+=`<div class="card"><h3>保存したボード</h3>${boards.length?`<div>${boards.map(x=>`<div class="player"><div class="nm"><b>${esc(x.name)}</b><span class="muted">${x.updated?esc(x.updated.slice(0,10).replace(/-/g,"/")):""}</span></div><button class="icon-btn" data-bload="${esc(x.id)}">開く</button>${D.canWrite?`<button class="icon-btn" data-bdel="${esc(x.id)}">削除</button>`:""}</div>`).join("")}</div>`:`<p class="muted">まだありません。作戦を名前をつけて保存しておけます。</p>`}
-  ${D.canWrite?`<form id="fb" class="row" style="flex-wrap:nowrap"><input type="text" id="bname" maxlength="30" placeholder="${rv?"例：サーブレシーブ基本形":"例：相手レフト対策"}" aria-label="ボードの名前"><button class="btn" type="submit" style="white-space:nowrap">保存</button></form><p class="err" id="berr" role="alert"></p><p class="why">保存したボードは「データの受け渡し」で名簿などと一緒にメンバーへ送れます。</p>`:""}</div>`;
+  ${D.canWrite?`<form id="fb" class="row" style="flex-wrap:nowrap"><input type="text" id="bname" maxlength="30" placeholder="${ph}" aria-label="ボードの名前"><button class="btn" type="submit" style="white-space:nowrap">保存</button></form><p class="err" id="berr" role="alert"></p><p class="why">保存したボードは「データの受け渡し」で名簿などと一緒にメンバーへ送れます。</p>`:""}</div>`;
   return h;
 }
 function svgPt(svg,e){ const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const m=svg.getScreenCTM(); return m?pt.matrixTransform(m.inverse()):{x:0,y:0}; }
-function redrawBoard(){ const svg=document.getElementById("board"); if(svg) svg.innerHTML=boardSVGInner(); const c=document.getElementById("bcov"); if(c) c.innerHTML=S.bkind==="recv"?recvInfo():coverageList(); }
+// ボード上の座標（うちのスパイクは上下反転しているので戻す）
+function boardPt(svg,e){ const p=svgPt(svg,e); return isAtk()?{x:p.x,y:FLIP()-p.y}:p; }
+function redrawBoard(){ const svg=document.getElementById("board"); if(svg){ svg.setAttribute("viewBox",boardViewBox()); svg.innerHTML=boardSVGInner(); } const c=document.getElementById("bcov"); if(c) c.innerHTML=boardInfo(); }
+// 駒が動ける範囲
+function pieceBounds(o){
+  const B=S.board, k=S.bkind;
+  if(k==="srv") return [12,BW-12,12,SN-10];
+  if(o===B.atk) return [-FZ+14,BW+FZ-14,TOP()+14,NET-8];
+  if((B.mine||[]).includes(o)) return [12,BW-12,TOP()+12,NET-10];
+  return [12,BW-12,NET+10,BH-12];
+}
+function fitPiece(o){ const [x0,x1,y0,y1]=pieceBounds(o); o.x=clamp(o.x,x0,x1); o.y=clamp(o.y,y0,y1); }
+// 駒どうしの干渉：動かしている駒は指について行き、ぶつかった駒を押しのける（押された駒がさらに別の駒を押すこともある）
+function placePiece(o,p,all){
+  o.x=Math.round(p.x); o.y=Math.round(p.y); fitPiece(o);
+  for(let k=0;k<12;k++){ let moved=false;
+    for(let i=0;i<all.length;i++) for(let j=i+1;j<all.length;j++){
+      const a=all[i], b=all[j], dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy);
+      if(d>=GAP-0.01) continue;
+      const ux=d<0.01?1:dx/d, uy=d<0.01?0:dy/d, over=GAP-d;
+      if(a===o){ b.x+=ux*over; b.y+=uy*over; fitPiece(b); }
+      else if(b===o){ a.x-=ux*over; a.y-=uy*over; fitPiece(a); }
+      else { a.x-=ux*over/2; a.y-=uy*over/2; b.x+=ux*over/2; b.y+=uy*over/2; fitPiece(a); fitPiece(b); }
+      moved=true; }
+    if(!moved) break; }
+  // 壁際で押し切れなかったときだけ、動かしている駒を押し戻す
+  all.forEach(q=>{ if(q===o) return; const dx=o.x-q.x, dy=o.y-q.y, d=Math.hypot(dx,dy); if(d<GAP-0.01){ const ux=d<0.01?1:dx/d, uy=d<0.01?0:dy/d; o.x=q.x+ux*GAP; o.y=q.y+uy*GAP; fitPiece(o); } });
+  all.forEach(q=>{ q.x=Math.round(q.x*10)/10; q.y=Math.round(q.y*10)/10; });
+}
 function setupBoard(){
   const svg=document.getElementById("board"); if(!svg) return;
   let drag=null;
   svg.addEventListener("pointerdown",e=>{
-    const p=svgPt(svg,e);
+    const p=boardPt(svg,e);
     if(S.bmode==="pen"){ drag={pen:true,st:[[Math.round(p.x),Math.round(p.y)]]}; S.board.strokes.push(drag.st); }
-    else { const g=e.target.closest("[data-pid],[data-atk],[data-srv],[data-ball]"); if(!g) return; drag=g.dataset.atk?{atk:true}:g.dataset.srv?{srv:true}:g.dataset.ball?{ball:true}:{pid:g.dataset.pid}; }
+    else { const g=e.target.closest("[data-pid],[data-mid],[data-atk],[data-srv],[data-ball]"); if(!g) return; const d=g.dataset; drag=d.atk?{atk:true}:d.srv?{srv:true}:d.ball?{ball:true}:d.mid?{mid:d.mid}:{pid:d.pid}; }
     S.dragging=true; try{ svg.setPointerCapture(e.pointerId); }catch(err){} e.preventDefault();
   });
   svg.addEventListener("pointermove",e=>{
-    if(!drag) return; const p=svgPt(svg,e);
+    if(!drag) return; const p=boardPt(svg,e), B=S.board, k=S.bkind;
     if(drag.pen){ const last=drag.st[drag.st.length-1]; if(Math.hypot(p.x-last[0],p.y-last[1])>3) drag.st.push([Math.round(p.x),Math.round(p.y)]); }
-    else if(drag.atk){ S.board.atk.x=clamp(Math.round(p.x),12,BW-12); S.board.atk.y=clamp(Math.round(p.y),14,NET-8); }
-    else if(drag.srv){ S.board.srv.x=clamp(Math.round(p.x),14,BW-14); }
-    else if(drag.ball){ S.board.ball.x=clamp(Math.round(p.x),6,BW-6); S.board.ball.y=clamp(Math.round(p.y),NET+6,BH-6); }
-    else { const pl=S.board.players.find(x=>x.id===drag.pid); if(pl){ pl.x=clamp(Math.round(p.x),12,BW-12); pl.y=clamp(Math.round(p.y),NET+10,BH-12); } }
+    else if(drag.srv){ B.srv.x=clamp(Math.round(p.x),14,BW-14); }
+    else if(drag.ball){ if(k==="srv"){ B.ball.x=clamp(Math.round(p.x),4,BW-4); B.ball.y=clamp(Math.round(p.y),4,SN-6); } else { B.ball.x=clamp(Math.round(p.x),6,BW-6); B.ball.y=clamp(Math.round(p.y),NET+6,BH-6); } }
+    else {
+      // ネットの向こう側の駒とはぶつからない。同じコートの駒どうしだけ干渉させる
+      const opp=[...B.players], ours=[...(B.mine||[]),B.atk];
+      if(drag.atk) placePiece(B.atk,p,ours);
+      else if(drag.mid){ const pl=(B.mine||[]).find(x=>x.id===drag.mid); if(pl) placePiece(pl,p,ours); }
+      else { const pl=B.players.find(x=>x.id===drag.pid); if(pl) placePiece(pl,p,opp); }
+    }
     redrawBoard();
   });
   const end=()=>{ if(!drag) return; if(drag.pen&&drag.st.length<2) S.board.strokes.pop(); drag=null; S.dragging=false; saveBoardCur(); redrawBoard(); if(render.pending){ render.pending=false; } };
@@ -935,7 +1163,7 @@ function dragEnd(){
 }
 function freshRender(){ render.reset=true; render(); }
 document.addEventListener("click",e=>{
-  const t = e.target.closest("[data-tab],[data-tsub],[data-form],[data-pos],[data-skill],[data-target],[data-mine],[data-theme],[data-done],[data-ppl],[data-spin],[data-kiso],[data-teamsub],[data-edit-r],[data-edit-e],[data-cancel],[data-del-r],[data-del-e],[data-past],[data-men],[data-lu],[data-luset],[data-lupos],[data-assign],[data-unassign],[data-svmove],[data-copyset],[data-luback],[data-del-l],[data-regonly],[data-export],[data-import],[data-bmode],[data-bshow],[data-bundo],[data-bpreset],[data-bclear],[data-bload],[data-bdel],[data-fedit],[data-freset],[data-fdel],[data-tedit],[data-tadd],[data-treset],[data-tdel],[data-brand],[data-accent],[data-themereset],[data-bkind],[data-rshow],[data-gp],[data-gopen],[data-gdone],[data-gstrdel],[data-gimpdel],[data-glogdel],[data-gshare],[data-gtext]");
+  const t = e.target.closest("[data-tab],[data-tsub],[data-form],[data-pos],[data-skill],[data-target],[data-mine],[data-theme],[data-done],[data-ppl],[data-spin],[data-kiso],[data-teamsub],[data-edit-r],[data-edit-e],[data-cancel],[data-del-r],[data-del-e],[data-past],[data-men],[data-lu],[data-luset],[data-lupos],[data-assign],[data-unassign],[data-svmove],[data-copyset],[data-luback],[data-del-l],[data-regonly],[data-export],[data-import],[data-bmode],[data-bshow],[data-bundo],[data-bpreset],[data-bclear],[data-bload],[data-bdel],[data-fedit],[data-freset],[data-fdel],[data-tedit],[data-tadd],[data-treset],[data-tdel],[data-brand],[data-accent],[data-themereset],[data-bkind],[data-rshow],[data-sshow],[data-gp],[data-gopen],[data-gdone],[data-gstrdel],[data-gimpdel],[data-glogdel],[data-gshare],[data-gtext]");
   if(!t) return;
   const d = t.dataset;
   if(d.done!==undefined){ S.done[d.done]=t.checked; return; }
@@ -992,8 +1220,9 @@ document.addEventListener("click",e=>{
   else if(d.bundo){ S.board.strokes.pop(); saveBoardCur(); }
   else if(d.bpreset){ const k=$("#bpreset").value; const old=S.board; S.board={...clonePreset(k,S.bkind),srv:{...old.srv},ball:{...old.ball},atk:k.startsWith("p")?{...old.atk}:clonePreset(k,S.bkind).atk}; saveBoardCur(); }
   else if(d.rshow){ S.rshow[d.rshow]=!S.rshow[d.rshow]; }
+  else if(d.sshow){ S.sshow[d.sshow]=!S.sshow[d.sshow]; }
   else if(d.bclear){ S.board.strokes=[]; saveBoardCur(); }
-  else if(d.bload){ const b=(D.boards||[]).find(x=>x.id===d.bload); if(b){ S.bkind=b.kind==="recv"?"recv":"dig"; S.board={kind:S.bkind,preset:b.preset||"",players:(b.players||[]).map(x=>({...x})),atk:{...(b.atk||{x:150,y:60})},srv:{...(b.srv||{x:150})},ball:{...(b.ball||{x:150,y:NET+170})},strokes:(b.strokes||[]).map(st=>typeof st==="string"?st.split(" ").map(q=>q.split(",").map(Number)):st.map(p=>[...p]))}; saveBoardCur(); window.scrollTo(0,0); } }
+  else if(d.bload){ const b=(D.boards||[]).find(x=>x.id===d.bload); if(b){ S.bkind=BKEY[b.kind]?b.kind:"dig"; S.board={kind:S.bkind,preset:b.preset||"",players:(b.players||[]).map(x=>({...x})),mine:(b.mine||[]).map(x=>({...x})),atk:{...(b.atk||{x:150,y:60})},srv:{...(b.srv||srvDefault(S.bkind))},ball:{...(b.ball||ballDefault(S.bkind))},strokes:(b.strokes||[]).map(st=>typeof st==="string"?st.split(" ").map(q=>q.split(",").map(Number)):st.map(p=>[...p]))}; saveBoardCur(); window.scrollTo(0,0); } }
   else if(d.bdel){ askDelete("boards",d.bdel,t); return; }
   else if(d.export){ S.xferOpen=true; const txt=exportJSON();
     if(d.export==="copy"){ (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{S.xferMsg="コピーしました。LINEなどに貼り付けて送れます。";render();}).catch(()=>{S.xferMsg="コピーできませんでした。";render();}); return; }
@@ -1040,7 +1269,7 @@ document.addEventListener("submit",async e=>{
   if(e.target.id==="fte"){ const ts=JSON.parse(JSON.stringify(targets())); const t=ts.find(x=>x.n===S.target); if(t){ t.h=$("#th").value.trim()||t.h; t.b=$("#tb").value.trim(); t.tag=$("#ttag").value; saveSettings({serveTargets:ts}); } freshRender(); return; }
   if(e.target.id==="fb"){
     const name=$("#bname").value.trim(); if(!name){ $("#berr").textContent="ボードの名前を入れてください。"; return; }
-    const B=S.board; const body={name,kind:S.bkind,preset:B.preset||"",players:B.players,atk:B.atk,srv:B.srv,ball:B.ball,strokes:B.strokes.map(st=>st.map(p=>p[0]+","+p[1]).join(" ")),updated:new Date().toISOString()};
+    const B=S.board; const body={name,kind:S.bkind,preset:B.preset||"",players:B.players,mine:B.mine||[],atk:B.atk,srv:B.srv,ball:B.ball,strokes:B.strokes.map(st=>st.map(p=>p[0]+","+p[1]).join(" ")),updated:new Date().toISOString()};
     if(JSON.stringify(body).length>200000){ $("#berr").textContent="書き込みが多すぎて保存できません。一部を消してください。"; return; }
     const id=await save("boards",null,body); if(id){ S.xferMsg=""; freshRender(); }
   }
