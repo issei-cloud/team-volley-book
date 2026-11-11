@@ -14,7 +14,7 @@
 
 ## ホーム画面に追加する
 
-GitHub Pages で公開しています：https://issei-cloud.github.io/team-volley-book/
+GitHub Pages で公開しています：https://volley9-tools.github.io/team-volley-book/
 
 - iPhone：Safari で開き、共有ボタン →「ホーム画面に追加」
 - Android：Chrome で開き、「⋮」→「ホーム画面に追加」（「アプリをインストール」と出る場合もあります）
