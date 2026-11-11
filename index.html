@@ -832,8 +832,8 @@ function blockers(){ return S.board.players.filter(p=>p.y>NET&&p.y<=NET+30); }
 function blockIv(){
   const bs=blockers().slice().sort((a,b)=>a.x-b.x), iv=[];
   bs.forEach(b=>{ const last=iv[iv.length-1];
-    if(last&&b.x-last.bx<=GAP+4&&Math.abs(b.y-last.by)<=GAP){ last.r=b.x+HAND; last.bx=b.x; last.by=b.y; }
-    else iv.push({l:b.x-HAND,r:b.x+HAND,bx:b.x,by:b.y}); });
+    if(last&&b.x-last.bx<=GAP+4&&Math.abs(b.y-last.by)<=GAP){ last.r=b.x+HAND; last.bx=b.x; last.by=b.y; last.n++; }
+    else iv.push({l:b.x-HAND,r:b.x+HAND,bx:b.x,by:b.y,n:1}); });
   return iv;
 }
 function projX(H,px,py,ty){ return H.x+(px-H.x)*(ty-H.y)/(py-H.y); }
@@ -848,11 +848,12 @@ function legal(H,T){
   const sx=x<2?2:BW-2, y=NET+(sx-c)*(NET-H.y)/(c-H.x);   // サイドラインに先に落ちる
   return {x:sx,y:clamp(y,NET+10,T.y)};
 }
-// ブロック越えのゾーン：ブロックの陰（ブロックごと）をそのまま奥へ延ばした所。陰と連動して動く
+// ブロック越えのゾーン：2人以上のブロックは、陰をそのまま奥へ延ばした所（陰と連動して動く）。
+// 1人ブロックは、そのブロッカーの真後ろの奥（幅約2m）
 function lobZones(){
   const H=hitPoint();
   return blockIv().map(v=>{
-    const at=y=>{ const xl=projX(H,v.l,NET,y), xr=projX(H,v.r,NET,y), c=(xl+xr)/2, h=Math.min((xr-xl)/2,LOB_HW); return {c,h}; };
+    const at=v.n===1?(()=>({c:(v.l+v.r)/2,h:1*M1})):y=>{ const xl=projX(H,v.l,NET,y), xr=projX(H,v.r,NET,y), c=(xl+xr)/2, h=Math.min((xr-xl)/2,LOB_HW); return {c,h}; };
     const a=at(LOB_NEAR), b=at(LOB_FAR), m=at((LOB_NEAR+LOB_FAR)/2);
     const pts=`${a.c-a.h},${LOB_NEAR} ${a.c+a.h},${LOB_NEAR} ${b.c+b.h},${LOB_FAR} ${b.c-b.h},${LOB_FAR}`;
     const tx=clamp(m.c,Math.max(8,m.c-m.h+8),Math.min(BW-8,m.c+m.h-8));
@@ -983,7 +984,7 @@ function spikeSVGInner(){
   if(sh.course) s+=`<rect x="0" y="${NET}" width="${BW}" height="${BH-NET}" fill="var(--atk)" fill-opacity=".04"/>`;
   if(A&&sh.follow){ const z=followZone(); s+=`<g clip-path="url(#atkCourt)"><ellipse cx="${z.cx}" cy="${z.cy}" rx="${z.rx}" ry="${z.ry}" fill="var(--def)" fill-opacity=".12" stroke="var(--def)" stroke-width="1.3" stroke-dasharray="4 3"/></g><text x="${clamp(z.cx,40,BW-40)}" y="${z.cy-z.ry-4}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--def)" font-family="var(--body)" style="paint-order:stroke" stroke="var(--floor)" stroke-width="3">フォロー範囲</text>`; }
   if(sh.shadow){ s+=`<g clip-path="url(#ourCourt)"><g mask="url(#fade)">`; blockIv().forEach(v=>{ const xl=projX(H,v.l,NET,BH+400), xr=projX(H,v.r,NET,BH+400); const pts=`${v.l},${NET} ${v.r},${NET} ${xr},${BH+400} ${xl},${BH+400}`; s+=`<polygon points="${pts}" fill="url(#hatch)"/><polygon points="${pts}" fill="var(--muted)" fill-opacity=".2"/>`; }); s+=`</g></g>`; }
-  if(sh.lob){ const zs=lobZones(); if(zs.length){ s+=`<g clip-path="url(#ourCourt)">`; zs.forEach(z=>{ s+=`<polygon points="${z.pts}" fill="var(--lob)" fill-opacity=".18" stroke="var(--lob)" stroke-width="1.4" stroke-dasharray="4 3"/>`; }); s+=`</g>`; zs.forEach(z=>{ s+=`<text x="${z.T.x}" y="${LOB_NEAR+13}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--lob)" font-family="var(--body)" style="paint-order:stroke" stroke="var(--floor)" stroke-width="3">ブロック越え</text>`; }); } }
+  if(sh.lob){ const zs=lobZones(); if(zs.length){ s+=`<g clip-path="url(#ourCourt)">`; zs.forEach(z=>{ s+=`<polygon points="${z.pts}" fill="var(--lob)" fill-opacity=".18" stroke="var(--lob)" stroke-width="1.4" stroke-dasharray="4 3"/>`; }); s+=`</g>`; zs.forEach(z=>{ s+=`<text x="${z.T.x}" y="${z.T.y+4}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--lob)" font-family="var(--body)" style="paint-order:stroke" stroke="var(--floor)" stroke-width="3">ブロック越え</text>`; }); } }
   if(sh.feint){ const bs=blockers(); if(bs.length){ const cx=bs.reduce((a,b)=>a+b.x,0)/bs.length; s+=`<g clip-path="url(#ourCourt)"><ellipse cx="${cx}" cy="${NET}" rx="${42+bs.length*12}" ry="58" fill="var(--accent)" fill-opacity=".16" stroke="var(--accent)" stroke-dasharray="4 3"/></g><text x="${cx}" y="${NET+50}" text-anchor="middle" font-size="10" fill="var(--accent-ink)" font-family="var(--body)" style="paint-order:stroke" stroke="var(--floor)" stroke-width="3">フェイント</text>`; } }
   if(sh.course){ const center=Math.abs(H.x-BW/2)<=CENTER_W; coverage().forEach(c=>{ const lob=c.k==="lob", col=c.blocked?"var(--muted)":lob?"var(--lob)":"var(--atk)";
       if(lob){ const mx=(H.x+c.T.x)/2, my=Math.min(H.y,c.T.y)-10; s+=`<path d="M${H.x} ${H.y} Q${mx} ${my-60} ${c.T.x} ${c.T.y}" fill="none" stroke="${col}" stroke-width="2" stroke-dasharray="7 4"/>`; }
