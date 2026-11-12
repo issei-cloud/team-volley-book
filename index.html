@@ -201,11 +201,50 @@ const RULES = [
   {h:"ラリー中は三角形で守る",b:["ブロックが閉めたコースは捨てる","三角形の内側は中衛","外の手前は前の角、外の奥は後衛"]}
 ];
 const CARD_GROUPS = [
+  {h:"考え方",ids:["read","mind","care"]},
   {h:"サーブ",ids:["floater","jfloat","jump","under","serveTarget"]},
-  {h:"攻撃",ids:["spike","bquick","toss"]},
-  {h:"守備",ids:["basic","recv","dig","block"]},
+  {h:"攻撃",ids:["spike","bquick","offspeed","toss","cover"]},
+  {h:"守備",ids:["basic","recv","dig","block","chance","netball"]},
   {h:"指導",ids:["myth"]}
 ];
+// 初級(b)・中級(m)・指導者向け(c)
+const CARD_LV = {basic:"b",under:"b",floater:"b",serveTarget:"b",recv:"b",dig:"b",cover:"b",chance:"b",mind:"b",care:"b",spike:"m",toss:"m",block:"m",bquick:"m",jfloat:"m",jump:"m",read:"m",offspeed:"m",netball:"m",myth:"c"};
+const LV_NAME = {b:"初級",m:"中級",c:"指導者向け"};
+const lvTag = id=>{ const l=CARD_LV[id]; return l?`<span class="tag" style="--c:${l==="b"?"var(--def)":l==="m"?"var(--atk)":"var(--muted)"};--tbg:${l==="b"?"var(--def-bg)":l==="m"?"var(--atk-bg)":"var(--court)"}">${LV_NAME[l]}</span>`:""; };
+const REFS = {
+  bsbh1:["NBC Camps「Great Blockers」","https://nbccamps.com/blog/volleyball/great-blockers-volleyball-tip"],
+  bsbh2:["Joe Trinsey「BSBH Variations」Smarter Volley","https://smartervolley.substack.com/p/bsbh-variations"],
+  eye:["ブロック場面での経験者と初心者の視線を比べた研究（PMC掲載論文）","https://pmc.ncbi.nlm.nih.gov/articles/PMC4296842"],
+  anderton:["Carla Anderton「Learn to Read the Hitter」USA Volleyball","https://usavolleyball.org/resource/so-you-want-to-be-a-great-defender-learn-to-read-the-hitter/"],
+  yamamoto:["山本智大インタビュー（小宮良之）Sportiva 2026","https://sportiva.shueisha.co.jp/clm/otherballgame/volleyball/2026/02/05/post_12/?page=3"],
+  goto:["新井雄大・後藤陸翔（田中夕子）Number Web 2026","https://number.bunshun.jp/articles/-/872245?page=2"],
+  yanagida:["柳田将洋「勝負所で緊張しない」東洋経済オンライン","https://toyokeizai.net/articles/-/448924?display=b"],
+  jbaland:["日本バスケットボール協会 北海道「U12・U15選手のスポーツ外傷予防」2025","https://hokkaido.japanbasketball.jp/wp-content/uploads/2025/06/2025_u1215gaisyouyobou.pdf"],
+  jumper:["三好直美「バレーボール選手のジャンパー膝の受傷機転に関する研究」びわこ成蹊スポーツ大学","https://biwako-seikei.repo.nii.ac.jp/record/3262/files/154%20%E4%B8%89%E5%A5%BD.pdf"],
+  ankle:["前田健太郎ほか「中高生バレーボール選手における足関節内反捻挫の二次的障害について」理学療法学 2005","https://www.jstage.jst.go.jp/article/cjpt/2004/0/2004_0_C0959/_article/-char/ja"],
+  tochigi:["栃木県 国体ドクター手引き（腰の障害）","https://www.pref.tochigi.lg.jp/m12/77kokutai/documents/tebikihonbun5-2.pdf"],
+  chapple:["April Chapple「Staying square to the net while blocking」USA Volleyball","https://usavolleyball.org/resource/staying-square-to-the-volleyball-net-while-blocking-five-steps/"],
+  arm:["Physical Education Update「Block the Hitting Arm, Not the Body」","https://www.physicaleducationupdate.com/public/Volleyball_Block_the_Hitting_Arm_Not_the_Body.cfm"],
+  yoshida:["吉田康成ほか「バレーボールのブロック技術に関する研究」バレーボール研究 2015","https://www.jstage.jst.go.jp/article/jsvr/17/1/17_28/_article/-char/ja"],
+  ci:["Coaches Insider「Principles of Effective Blocking」","https://coachesinsider.com/volleyball/building-blocks-principles-of-effective-blocking-article"],
+  shizuoka:["静岡県バレーボール協会 審判資料（9人制 重点事項）","https://sva-shizuoka.or.jp/gyoumu/shinpan/pdf/2020/200411/5_9sys_juuten.pdf"],
+  yuri:["由利本荘市「9人制バレーボールについて（6人制とのちがい）」","https://www.city.yurihonjo.lg.jp/_res/projects/default_project/_page_/001/005/859/25_winter_03.pdf"],
+  kyoto:["京都市 9人制ルールの概略","https://www.city.kyoto.lg.jp/bunshi/cmsfiles/contents/0000076/76194/gairyaku.pdf"],
+  waseda:["早稲田大学 卒業論文「スパイクレシーブ動作の分析」2009","https://tokorozawa.w.waseda.jp/kg/doc/20//sotsuron2009/1K06B043.pdf"],
+  tsutsui:["筒井視穂子（元久光スプリングス）「マイ♡ドリル レシーブ練習」神戸新聞NEXT 2022","https://www.kobe-np.co.jp/news/seiban/202210/0015685682.shtml"],
+  akiyama:["秋山央「サーブレシーブ側コートから飛来するダイレクトボールに対する攻撃の検討」バレーボール研究 2022","https://jsvr.org/wp-content/uploads/2024/04/jsvr24pp19-26.pdf"],
+  routine:["田中博史ほか「バレーボールにおけるサーブの準備行動に関する研究」日本バレーボール学会","https://jsvr.org/wp-content/uploads/2024/02/p54.pdf"],
+  hashihara:["橋原孝博「バレーボールのフローターサーブに関する運動学的研究」2004","https://ir.lib.hiroshima-u.ac.jp/00014988"],
+  aoc:["The Art of Coaching Volleyball「Developing a consistent and powerful serve」","https://www.theartofcoachingvolleyball.com/developing-a-consistent-and-powerful-serve/"],
+  uga:["University of Georgia「Attacking and Blocking」","https://open.online.uga.edu/volleyball/chapter/attackingandblocking"],
+  vcrebound:["Volleyball Canada「Attacking – The Rebound」","https://volleyball.ca/uploads/Development/Coach/Skills/One_page_desc./ADV_DEV/EN/Hitting_-_The_Rebound_for_e_module.pdf"],
+  cover:["VolleyballXpert「Free Ball Drill: Pass, Set, Cover, and Catch」","https://volleyballxpert.com/drills/details/free-ball-pass-set-cover-and-catch"],
+  trans:["Coaches Insider「Transition Drills」","https://coachesinsider.com/volleyball/transition-drills-article"],
+  free1:["Sportplan「Freeball Transition Drill」","https://www.sportplan.net/community/Volleyball/5-Drills/Freeball-Transition-Drill-6317431.jsp"],
+  free2:["University of Victoria「Hitter Free Ball Transition Practice」","https://web.uvic.ca/~thopper/Unitplan452/netwall2000/Jeff&brett9VB/UnitPlan/TEMPLATE/Block/Game4-2.html"],
+  free3:["Sportplan「Front Row Free ball transition」","https://www.sportplan.net/sketches/Volleyball/openSketch/152636"],
+  nishino:["西野明「ルールの相違によるバレーボールの特徴 −6人制と9人制との比較−」千葉大学 2019","https://opac.ll.chiba-u.jp/da/curator/106064/S13482084-67-P163.pdf"]
+};
 const CARDS = {
   basic:{t:"基本動作",sub:"スプリットステップ・目線・面",point:"すべてのレシーブの土台。打つ瞬間に準備が終わっているか。",rows:[["反応が遅れる","相手が打つ瞬間に足が止まっている","打つ瞬間にトン"],["コースが読めない","ボールだけを目で追っている","トスが上がったら、打つ人を見る"],["軌道を見失う","頭が上下に動いている","頭は固定、目玉で追う"],["レシーブが散らばる","腕を振って当てている","腕を振らずに、面を止めるだけ"],["狙った方向に返らない","面を返したい方向にそのまま向けている","面は来た方向とセッターの真ん中へ"]],
     tips:[{h:"スプリットステップ",b:["相手が打つ瞬間に数cm跳び、両足同時に着地して動き出す","足は肩幅より少し広く、かかとを少し浮かせる"]},
@@ -214,8 +253,12 @@ const CARDS = {
       {h:"面の作り方（アンダー）",b:["親指をそろえて組み、肘を伸ばす","手首と肘の間の平らな部分で当てる"]},
       {h:"面のコツ",src:1,b:["肘の内側を上に向けて前腕を平らにし、肩甲骨を軽く引き上げて面を広く取る","腕を大きく振らず、面を平行移動させて、当たる瞬間に力を入れて止める","高さの調整は腕ではなく、膝と肩甲骨で行う"]},
       {h:"面の向き",src:1,b:["面をセッターに直接向けても返らない","ボールが飛んでくる方向とセッターの方向の「真ん中（二等分線）」に面を向ける","横のボールは肩を入れて、この向きを作る"]}]},
-  floater:{t:"フローターサーブ",sub:"チームの基本サーブ",point:"1本制なので「入れる → コース → 強さ」の順。",rows:[["ネットにかかる","トスが低い、打点が下がっている","トスは少し高めに、打点を上げて"],["奥にアウトする","下からこすり上げている、体が後ろに倒れる","当てて止める、体重は前へ"],["左右にぶれる","トスの位置が毎回違う","トスは毎回同じ場所に"],["揺れない","手首を使って回転がかかる","手首を固めて、真ん中を叩く"],["本番で入らない","緊張で動きが毎回変わる","いつもの手順で打つ"]],
-    tips:[{h:"打ち方",b:["打つ手と反対の足を前に出し、体は狙う方向へ","トスは打つ手の肩の前・少し高めに、回転をかけずに上げる","手のひらの硬い部分でボールの中心を押し出し、当てたら止める"]}]},
+  floater:{t:"フローターサーブ",sub:"チームの基本サーブ",point:"毎回同じ手順、同じトス。回転をかけずに真ん中を叩く",rows:[["ネットにかかる","トスが低い、打点が下がっている","トスは少し高めに、打点を上げて"],["奥にアウトする","下からこすり上げている、体が後ろに倒れる","当てて止める、体重は前へ"],["左右にぶれる","トスの位置が毎回違う","トスは毎回同じ場所に"],["揺れない","手首を使って回転がかかる","手首を固めて、真ん中を叩く"],["本番で入らない","緊張で動きが毎回変わる","いつもの手順で打つ"],["負けている場面でミスが続く","急いで打っている","ひと呼吸おいてから"]],
+    tips:[
+      {h:"打ち方",b:["打つ手と反対の足を前に出し、体は狙う方向へ","トスは打つ手の肩の前・少し高めに、回転をかけずに上げる","手のひらの硬い部分でボールの中心を押し出し、当てたら止める"]},
+      {h:"打つ前の手順（ルーティン）",s:["routine"],b:["ボールをつく回数、息を吐く、狙いを見る、などの手順を決めて毎回同じにする。リズムの乱れを防ぎ、うっかりミスが減る","国際大会の分析では、セットを落としている側ほどサーブを打つまでの時間が短くなっていた。焦っているときほど、ひと呼吸おく"]},
+      {h:"距離",s:["hashihara"],b:["遠くから打つほど、ボールが途中で急に変化しやすくなる。エンドラインから少し下がって打つのも手"]},
+      {h:"攻めるか入れるか",s:["aoc"],b:["点差や場面ごとに「入れる」「攻める」をチームで決めておく。迷いながら打つのが一番入らない"]}]},
   jfloat:{t:"ジャンプフローター",sub:"高い打点から揺らす",point:"高さで角度がつく分、揺れが大きくなる。トスの安定が9割。",rows:[["タイミングが合わない","トスの高さ・位置が毎回違う","トスは前方に、毎回同じ高さで"],["ネットにかかる","跳ぶのが早く、落ちながら打っている","トスを見てから踏み切る"],["奥にアウトする","手首を使って押し込んでいる","当てて止める、振り抜かない"],["揺れない","回転がかかっている","手首を固めて、真ん中を叩く"],["エンドラインを踏む","踏み切り位置が近い","踏み切りはラインから余裕をもって"]],
     tips:[{h:"打ち方",b:["助走は2〜3歩。トスは打つ手側の前方に、無回転で上げる","最高点の少し手前で、体の前でボールを捉える","フローターと同じく、当てたら腕を止める"]},{h:"使いどころ",b:["フローターが安定して入るようになってから","1本制の大会では、練習で安定して入るまでは温存する"]}]},
   jump:{t:"ジャンプサーブ",sub:"スパイクと同じ強打",point:"一番強いが一番ミスが出やすい。1本制では使う場面を選ぶ。",rows:[["トスが安定しない","腕が伸び切らず、回転がばらつく","腕を伸ばしきって、同じ回転で前へ"],["ネットにかかる","トスが後ろで、打点が後ろ","ボールを前に置いて、前に跳ぶ"],["アウトする","ボールの下を叩いている、回転不足","上からかぶせて、ドライブをかける"],["タイミングが合わない","トスを見る前に走り出している","トスの頂点を見て助走に入る"]],
@@ -252,12 +295,63 @@ const CARDS = {
       {h:"バックトス",b:["正面トスと同じ構え・同じ位置で触る（読まれにくい）","額の上で捉え、手首を後ろに返して方向を出す","基礎練の「真下にバウンドさせて入るバックトス」で感覚を作る"]},
       {h:"バックトスを伸ばすコツ",src:1,b:["腕の力で引いたり、お腹を突き出したりしない","肩甲骨を後ろへスライドさせて押し出す。トスが垂れずに最後まで伸びる"]}
     ]},
-  recv:{t:"レセプション",sub:"サーブレシーブ",point:"返す目標はネットから少し離れたセッターの頭上。手は下に入ってから組む。",rows:[["後ろに飛ぶ","腕を振っている","振らない、面で止める"],["セッターに返らない","面をセッターに直接向けている","面は来た方向とセッターの真ん中へ"],["横のボールを弾く","足が止まっている","足で動いて、肩を入れる"],["揺れるボールに合わない、弾く","最初から手を組んでいて足が出ない","構えは胸の前、下に入ってから組む"],["遅れる","構えが高い","低く、打つ瞬間にトン"]],
-    tips:[{h:"構え",src:1,b:["待っている間や移動する前から手を組まない。足が出にくくなり、変化するボールに対応できず弾く原因になる","胸の前で肘を90度くらいにしてリラックスして構え、ボールの下に入ってから手を組む"]},
-      {h:"面と目線",src:1,b:["面は、ボールが来る方向とセッターの方向の真ん中に向ける","頭は動かさず、目玉だけでボールを追う"]}]},
-  dig:{t:"強打レシーブ",sub:"ディグ",point:"重心を低く、膝の角度を変えずに受ける。前のボールは「打たれる前の位置」で決まる。",rows:[["弾いてコート外へ","勢いを吸収できていない","面を上に向けて、勢いを殺す"],["反応できない","構えが高い、準備が遅い","低く、打つ瞬間に止まって構える"],["前に落ちる強打に届かない","打たれてから前に出ようとしている","最初からもう一歩前で構える"],["顔の近くで腕が出ない","アンダーにこだわっている","顔の前は手で"],["立ち位置が悪い","ブロックを見ていない","ブロックの陰に入らない"]],
-    tips:[{h:"「一歩出せ」ではなく「一歩前で構える」",src:1,b:["スパイクが床に落ちるまで約0.3〜0.4秒。人が反応して前に一歩出るには約0.5秒かかる","打たれた後に前へ足を出すのは間に合わない。打たれる前の段階で、最初からもう一歩前で構えておく"]}]},
-  block:{t:"ブロック",sub:"ワンタッチも成功",point:"塞ぐコースを後ろに声で伝える。",rows:[["手とネットの間に落ちる","手がネットから離れている","ネットに沿って、手を前に出す"],["指を弾かれてアウト","両手の間が開いている","指を開いて固める、間を閉める"],["跳ぶのが早い","アタッカーより先に跳んでいる","アタッカーが跳んでから跳ぶ"],["移動が間に合わない","足の運びが遅い","止まってから真上に跳ぶ"],["ネットに触れる","前に流れている","真上に跳ぶ"]]},
+  recv:{t:"レセプション",sub:"サーブレシーブ",point:"力を抜いて、足で入ってから面を作る",rows:[["後ろに飛ぶ","腕を振っている","振らない、面で止める"],["セッターに返らない","面をセッターに直接向けている","面は来た方向とセッターの真ん中へ"],["横のボールを弾く","足が止まっている","足で動いて、肩を入れる"],["揺れるボールに合わない、弾く","最初から手を組んでいて足が出ない","構えは胸の前、下に入ってから組む"],["遅れる","構えが高い","低く、打つ瞬間にトン"],["体が固まって足が出ない","力が入りすぎている","力を抜いて、肩を下ろす"],["返球をそのまま相手に打たれる","ネットぎりぎりに返している","ネットから少し離して高く"]],
+    tips:[
+      {h:"構え",src:1,b:["待っている間や移動する前から手を組まない。足が出にくくなり、変化するボールに対応できず弾く原因になる","胸の前で肘を90度くらいにしてリラックスして構え、ボールの下に入ってから手を組む"]},
+      {h:"面と目線",src:1,b:["面は、ボールが来る方向とセッターの方向の真ん中に向ける","頭は動かさず、目玉だけでボールを追う"]},
+      {h:"いちばん大事なのは力を抜くこと",s:["tsutsui"],b:["元トップ選手は、体に力が入ると足が動かなくなるので、サーブレシーブではリラックスを最優先にしていると話している"]},
+      {h:"返す場所",s:["akiyama"],b:["ネットぎりぎりに返すと、相手にそのまま打ち込まれる。かつての強豪キューバ女子は、わざとネットから少し離して返していた"]}]},
+  dig:{t:"強打レシーブ",sub:"ディグ",point:"打たれる前に止まって低く構える。腕は振らずに当てて止める",rows:[["弾いてコート外へ","勢いを吸収できていない","面を上に向けて、勢いを殺す"],["反応できない","構えが高い、準備が遅い","低く、打つ瞬間に止まって構える"],["前に落ちる強打に届かない","打たれてから前に出ようとしている","最初からもう一歩前で構える"],["顔の近くで腕が出ない","アンダーにこだわっている","顔の前は手で"],["立ち位置が悪い","ブロックを見ていない","ブロックの陰に入らない"],["正面の強打を大きく弾く","腕に力が入って当てにいっている","当たる瞬間に腕を少し引く"],["フェイントに出遅れる","打つ人を見ていない","打つ人の肩と腕を見る"]],
+    tips:[
+      {h:"「一歩出せ」ではなく「一歩前で構える」",src:1,b:["スパイクが床に落ちるまで約0.3〜0.4秒。人が反応して前に一歩出るには約0.5秒かかる","打たれた後に前へ足を出すのは間に合わない。打たれる前の段階で、最初からもう一歩前で構えておく"]},
+      {h:"体の使い方",s:["waseda"],b:["研究では、姿勢が低い人ほど成功率が高かった。重心を低く保ち、膝の角度を変えずに受ける"]},
+      {h:"返す場所と取り方",s:["anderton"],b:["高く、コートの真ん中へ返す。セッターに直接返そうと欲張らない","できるだけ両手で、足で立ったまま取る。強いボールは当たる瞬間に腕を体の方へ少し引いて勢いを吸う"]},
+      {h:"元トップ選手の練習",s:["tsutsui"],b:["床に膝をついて、近くから打ってもらう。腕の面を視界の下の端に固定し、腕を振らずに反応だけに集中する","下半身を使えない形にすると、上半身の面づくりに集中できる"]}]},
+  block:{t:"ブロック",sub:"ワンタッチも成功",point:"相手コートに手を出さず、ネットに沿って手を立てる。打つ人の腕の正面に入る",rows:[["手とネットの間に落ちる","手がネットから離れている","ネットに沿って手を立てる"],["指を弾かれてアウト","両手の間が開いている","指を開いて固める、間を閉める"],["跳ぶのが早い","アタッカーより先に跳んでいる","アタッカーが跳んでから跳ぶ"],["移動が間に合わない","トスが上がってから相手を探している","セッターを見て早めに動く"],["ネットに触れる","前に流れている","真上に跳ぶ"],["いつも同じコースを抜かれる","打つ人の体の正面に立っている","打つ腕の前に入る"],["オーバーネットを取られる","相手コート側でボールに触っている","自分のコート側で止める"]],
+    tips:[
+      {h:"見る順番",s:["bsbh1"],b:["ボール → セッター → ボール → 打つ人。ボールだけを見て反応すると遅れる（「見る順番」カード）"]},
+      {h:"構え",s:["chapple"],b:["肩をネットと平行にして、手は肩の高さで手のひらを前に向けて待つ","跳ぶ前に手を下げない。下げると上げ直す分だけ遅れる","1つのコースを確実に消すと決めて跳ぶ"]},
+      {h:"位置",s:["arm"],b:["打つ人の体や頭ではなく、打つ腕の正面に入ると、塞げる範囲が一番広くなる"]},
+      {h:"足の運び",s:["yoshida"],b:["近い距離は横向きのまま横へ（サイドステップ）、遠い距離は足を交差させて走る（クロスステップ）","トップ選手のセンターは、トスが出た瞬間に片足を回して向きを変え、2歩で踏み切っていた"]},
+      {h:"跳ばない判断",s:["ci"],b:["トスがネットから離れた、アンテナの外、打つ人の体勢が崩れているなど、強打が来ないと分かったら跳ばずに下がってレシーブに回る"]},
+      {h:"9人制のルール",s:["shizuoka","yuri","kyoto"],b:["相手コート側でボールに触るとオーバーネット。自分のコートで触ったあとに手が相手側に出るのは反則ではない","9人制ではブロックの接触も1回に数える。ブロックした人がもう一度続けて触ってもよい"]}]},
+  read:{t:"見る順番（読み）",sub:"ブロックもレシーブも、準備の早さは目で決まる",point:"ボール → セッター → ボール → 打つ人",rows:[["ブロックがいつも遅れる","ボールだけを目で追っている","セッターを見る"],["フェイントに反応できない","打つ人の体勢を見ていない","トスと打つ人の位置を見る"],["強打に構えが間に合わない","打たれる瞬間も動いている","打つ瞬間は止まる"]],
+    tips:[
+      {h:"見る順番",s:["bsbh1","bsbh2"],b:["パスの行方 → セッター（体の向き・手の位置）→ トスの行方と高さ → 打つ人（助走の向き・肩・腕）の順に見る。ボールだけを追って反応すると、ブロックは遅れる"]},
+      {h:"上手な人ほどセッターを見ている",s:["eye"],b:["視線を調べた研究では、経験者はセッターに目を向ける時間が長く、初心者はボールの軌道を全部目で追いがちだった"]},
+      {h:"打つ人から読めること",s:["anderton"],b:["トスが打つ人の後ろに流れたり、打つ人がボールの真下に入りすぎたりすると、強打は打ちにくく軟打やフェイントが増える","ネットに近く低いトスは、クロスに角度をつけてくることが多い","打つ人の肩と腕の振りで、強打かフェイントかを見分ける"]},
+      {h:"練習のやり方",s:["bsbh2"],b:["ブロックやレシーブの練習中に「ボール」「セッター」「ボール」「アタッカー」と口に出して、見る順番をくせにする"]}]},
+  mind:{t:"ミスと切り替え",sub:"引きずらない、怖がらない",point:"ミスはするもの。次の1本の準備をする",rows:[["ミスを引きずって連続失点","失敗したプレーを考え続けている","次の1本だけ"],["ミスが怖くて消極的になる","ミスしないことが目標になっている","攻めたミスはOK"],["責め合いの空気になる","結果だけを言っている","次にどうするかを言う"]],
+    tips:[
+      {h:"トップ選手もミスする前提",s:["yamamoto"],b:["日本代表のリベロ山本智大選手は、ミスはするものだから切り替えられるようにすること、調子の波を小さくして「普通」を続けることを強みに挙げている"]},
+      {h:"流れが悪いときこそ攻める",s:["goto"],b:["代表クラスの若手も、流れが悪い場面で安全策に逃げるより攻める選択をし、結果がミスでも一喜一憂しないことを大事にしている"]},
+      {h:"ミスを2つに分ける",b:["攻めた結果のミス（狙ったサーブ、強く打ったスパイク）は責めない","防げるミス（声が出ずにお見合い、準備が遅い、ルールを知らない）はチームで減らす"]},
+      {h:"緊張に強くなる",s:["yanagida"],b:["柳田将洋選手は、練習のときから本番に近い要求やプレッシャーの中でプレーして、プレッシャーを「日常」にしているという","練習メニューの「サーブ練習（1本勝負）」のように、本番と同じ1本の緊張を練習で作る"]}]},
+  care:{t:"けが予防",sub:"長く続けるために",point:"両足で、膝をつま先の向きにそろえて着地",rows:[["着地で膝が内側に入る","片足で着地している、脚の筋力が足りない","両足で、膝はつま先の方向"],["ジャンプで膝の下が痛む","崩れた体勢での片足着地のくり返し","痛みが続くなら量を減らして受診"],["ネット際で足首をひねる","人の足の上に着地している","真上に跳んで真下に降りる"],["捻挫をくり返す","治りきらないうちに復帰している","リハビリを済ませてから"]],
+    tips:[
+      {h:"着地",s:["jbaland"],b:["ジャンプ着地の調査では、片足から着地する選手は膝が内側に入りやすかった。両足でやわらかく降り、膝とつま先の向きをそろえる"]},
+      {h:"ジャンパー膝",s:["jumper"],b:["原因はジャンプのくり返しだけでなく、トスが乱れたときやブロックで流されたときの、崩れた片足着地も負担になると考えられている"]},
+      {h:"足首の捻挫",s:["ankle"],b:["バレーで最も多いけがの一つ。軽く見て十分なリハビリをせずに続けると、再発しやすくなり、膝など他の部位の痛みにもつながる"]},
+      {h:"腰",s:["tochigi"],b:["動くと痛む腰痛が2週間以上続くときは、整形外科を受診する"]},
+      {h:"社会人チームの習慣",b:["練習の最初は体を温めてからジャンプを入れる。終わりは脚・肩・腰を伸ばして終える","痛みがある人は無理をせず、メニューを変えて参加する"]}]},
+  offspeed:{t:"フェイント・軟打・リバウンド",sub:"強打だけが攻撃じゃない",point:"最後まで強打の形で入って、当てる瞬間だけ変える",rows:[["フェイントが読まれる","助走や腕の振りが途中で遅くなる","最後まで強打の形"],["リバウンドがブロックに止められる","下向きに打っている、振りをゆるめた","高く、まっすぐブロックへ"],["ブロック越えがアウトする","押し出しが強すぎる","ブロックの真後ろへ軽く"]],
+    tips:[
+      {h:"種類",s:["uga"],b:["フェイント：指先で落とす","プッシュ：空いている所やコートの奥へ押し出す","ロール：手首を返して回転をかけ、ネットすれすれにゆっくり落とす"]},
+      {h:"リバウンド（ブロックに当てて取り直す）",s:["vcrebound"],b:["手を大きく開いてボールの後ろを平らに叩き、高くまっすぐブロックに当てる","振りを弱めるとブロックに止められやすい。強く打つと見せる","打ったら両足で着地し、すぐネットから離れて、もう一度打てる準備をする"]},
+      {h:"狙い所",b:["戦術ボードの「うちのスパイク」で、オレンジの「ブロック越え」と黄色の「フェイント」が狙い目。誰も守っていない所を探す"]}]},
+  cover:{t:"スパイクのフォロー",sub:"ブロックに当たって戻るボールを拾う",point:"打つ人のまわりを低く囲み、ブロックの手を見る",rows:[["ブロックされたボールが足元に落ちる","立ったまま見ている","低く、腕を前に"],["フォローに誰もいない","自分は関係ないと思っている","打つ人以外は全員フォロー"],["拾ったボールが続かない","遠くへ弾いている","高く上げて、もう一度攻撃"]],
+    tips:[
+      {h:"位置",s:["cover"],b:["打つ人のすぐ近くを3人ほどで囲む。戦術ボードの「うちのスパイク」の「フォロー範囲」で人数を確かめられる"]},
+      {h:"構え",b:["膝を曲げて低く、腕は前、目は打つ人ではなく相手ブロックの手を見る。真下に落とされるので、立っていると間に合わない"]},
+      {h:"打つ人自身も",s:["trans"],b:["打った人も両足で着地したら、すぐ低い構えに戻る。高い姿勢のまま動くと次の動きが遅れる"]}]},
+  chance:{t:"チャンスボール",sub:"相手が攻撃できずに返してきたボール",point:"「チャンス！」→ 前衛は下がる → セッターはネットへ → 高く返す",rows:[["簡単なボールでお見合い","声がない","「チャンス！」のあと「オーライ」"],["前衛が下がり遅れて攻撃できない","ネット際に残っている","声と同時に下がる"],["セッターが1本目を取ってしまう","セッターも下がっている","セッターはネットへ"],["速く低く返して攻撃が遅れる","急いで返している","高く、ゆっくり"]],
+    tips:[
+      {h:"流れ",s:["free1","free2","free3"],b:["相手が攻撃できないと分かった時点で誰かが「チャンス！」と声を出す","前衛はネットから3mくらいまで下がって助走の準備、セッターはネットの定位置へ向かう","パスはセッターへ高く。できればオーバーで取ると狙いやすい"]},
+      {h:"一番の得点チャンス",s:["akiyama"],b:["チャンスボールからの攻撃は、相手の準備が整う前に打てる絶好の機会。早く攻撃の形に入る"]}]},
+  netball:{t:"ネットにかかったボール",sub:"9人制ならではのプレー",point:"ネットに触れたら4回まで。落ちてくる所に低く入る",rows:[["ネットから落ちるボールに間に合わない","立ったまま見ている","低く、ネットの近くで待つ"],["4回目があるのに無理に返す","ルールを知らない","ネットに触れたら4回まで"],["取りにいってネットに触れる","ネットに近づきすぎ","体はネットから少し離す"]],
+    tips:[
+      {h:"ルール",s:["nishino","yuri"],b:["9人制では、ボールがネットに触れた場合、チームで最大4回まで触れてよい。同じ人がもう一度触ることもできる","2人が同時にボールに触れた場合は、どちらも続けてプレーできる","ネットの延長線を越えて相手側に出たボールは取り戻せない"]},
+      {h:"取り方",b:["ネットに当たったボールは低い位置まで落ちてくる。膝を曲げて下に入り、真上に高く上げて次の人につなぐ"]}]},
   myth:{t:"よくある思い込み",sub:"指導で直したい5つのズレ",point:"上達の近道は、思い込みと実際の動きのズレを言葉にして直すこと。",rowsLabel:"思い込み → 正しくは → 声かけ",rows:[["面はセッターに向ける","来た方向とセッターの真ん中に向ける","面は真ん中へ"],["スパイクは打ち下ろすもの","ブロックの上を通して奥へ深く強く","奥へ深く"],["打たれてから一歩出す","打たれる前に一歩前で構えておく","最初から一歩前"],["サーブレシーブは早めに手を組む","下に入ってから組む","構えは胸の前"],["トスはセッターに合わせてもらう","スパイカーがトスに合わせに行く","自分から合わせる"]],
     tips:[{h:"失敗の原因を切り分ける",src:1,b:["失敗したら「面の角度・打点・目線・位置取り・助走のタイミング」のどこが原因かをはっきりさせる","原因の部分だけを取り出して反復練習する"]}]}
 };
@@ -449,7 +543,7 @@ function roleBlock(k){
   const p = POS[k], g = GRP[p.grp];
   return `<div class="role" style="--c:${g.c}"><div><span class="tag" style="--c:${g.c};--tbg:${g.bg}">${g.label}</span></div><h3>${esc(p.name)}</h3><ul class="clean">${p.duty.map(d=>`<li>${esc(d)}</li>`).join("")}</ul><p class="muted">判断ルール</p><ul class="clean">${p.rule.map(d=>`<li>${esc(d)}</li>`).join("")}</ul></div>`;
 }
-function cardBtn(id){ const c=CARDS[id]; return `<button class="list-btn" data-skill="${id}"><span><b>${esc(c.t)}</b><br><small>${esc(c.sub)}</small></span><span class="arrow">›</span></button>`; }
+function cardBtn(id){ const c=CARDS[id]; return `<button class="list-btn" data-skill="${id}"><span><b>${esc(c.t)}</b> ${lvTag(id)}<br><small>${esc(c.sub)}</small></span><span class="arrow">›</span></button>`; }
 function evRow(e,withActions){
   const d=parseD(e.date), n=daysTo(e.date), ne=daysTo(endOf(e)), multi=e.end&&e.end>e.date, dl=e.deadline?daysTo(e.deadline):null;
   const kc = e.kind==="大会"?"var(--atk)":e.kind==="締切"?"var(--danger)":"var(--def)";
@@ -465,7 +559,7 @@ function evRow(e,withActions){
 
 function viewHome(){
   const mine = S.mine && POS[S.mine]; const next = upcoming()[0];
-  let h = countdown() + `<div class="banner" style="background:var(--surface);color:var(--ink);border:1px solid var(--line)"><span class="muted">今月のテーマ</span><b style="font-size:17px">${esc(THEMES[S.theme].n)}</b><span class="muted">判断ルールの7か条を全員でそろえる</span></div>`;
+  let h = countdown() + `<div class="banner" style="background:var(--surface);color:var(--ink);border:1px solid var(--line)"><span class="muted">今日のテーマ</span><b style="font-size:17px">${esc(THEMES[S.theme].n)}</b><span class="muted">判断ルールの7か条を全員でそろえる</span></div>`;
   if(next) h += `<div class="card"><div class="row" style="justify-content:space-between"><h3>次の予定</h3><button class="icon-btn" data-tab="team" data-teamsub="events">すべて見る</button></div><div>${evRow(next,false)}</div></div>`;
   if(D.roster.length){ const me=S.me&&player(S.me);
     h += `<h2>あなたの目標</h2><label class="f" for="mesel">名前を選ぶと、キャプテンが書いた目標や改善ポイントが出ます</label><select id="mesel"><option value="">選んでください</option>${[...D.roster].sort((a,b)=>(+a.num||9999)-(+b.num||9999)).map(p=>`<option value="${esc(p.id)}" ${S.me===p.id?"selected":""}>${esc(p.num??"")} ${esc(p.name)}</option>`).join("")}</select>`;
@@ -524,14 +618,17 @@ function viewPatterns(){
   h+=`<div class="card"><h4>参考</h4><ul class="clean">${PATTERN_SRC.map(([t,u])=>`<li><a href="${u}" target="_blank" rel="noopener" style="color:var(--ink)">${esc(t)}</a></li>`).join("")}</ul></div>`;
   return h;
 }
+// 出典つきのコツは番号を付け、カードの下に出典の一覧を出す
+function cardRefs(c){ const all=[]; (c.tips||[]).forEach(t=>(t.s||[]).forEach(k=>{ if(REFS[k]&&!all.includes(k)) all.push(k); })); return all; }
 function tipsBlock(c){
   if(!c.tips) return "";
-  return `<div class="card tips">${c.tips.map(t=>`<h4>${esc(t.h)}${t.src?` <span class="tag" style="--c:var(--accent-ink);--tbg:var(--accent)">動画まとめ</span>`:""}</h4><ul class="clean">${t.b.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`).join("")}</div>`;
+  const all=cardRefs(c);
+  return `<div class="card tips">${c.tips.map(t=>{ const n=(t.s||[]).map(k=>all.indexOf(k)+1).filter(x=>x>0); return `<h4>${esc(t.h)}${t.src?` <span class="tag" style="--c:var(--accent-ink);--tbg:var(--accent)">動画まとめ</span>`:""}${n.length?`<sup style="font-size:10px;color:var(--muted)"> ${n.join(",")}</sup>`:""}</h4><ul class="clean">${t.b.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`; }).join("")}${all.length?`<div class="why" style="border-top:1px solid var(--line);padding-top:6px;margin-top:6px">出典：${all.map((k,i)=>`<br><a href="${REFS[k][1]}" target="_blank" rel="noopener" style="color:inherit">${i+1}. ${esc(REFS[k][0])}</a>`).join("")}</div>`:""}</div>`;
 }
 function viewSkills(){
   if(S.skill){
     const c = CARDS[S.skill];
-    let h = `<button class="back" data-skill="">‹ 技術カード一覧</button><h2>${esc(c.t)}</h2><div class="card"><p><b>ポイント</b>　${esc(c.point)}</p></div>`;
+    let h = `<button class="back" data-skill="">‹ 技術カード一覧</button><h2>${esc(c.t)} ${lvTag(S.skill)}</h2><div class="banner" style="background:var(--accent);color:var(--accent-ink)"><span style="font-size:12px;opacity:.85">まずこれだけ</span><b>${esc(c.point)}</b></div>`;
     if(c.fig){
       const t = targets().find(x=>x.n===S.target);
       if(S.tedit&&D.canWrite){
@@ -675,7 +772,7 @@ function viewSettings(){
   const sw=(list,key,cur)=>list.map(([c,n])=>`<button class="sw" style="--c:${c}" data-${key}="${c}" aria-pressed="${cur.toLowerCase()===c.toLowerCase()}" aria-label="${n}" title="${n}" ${D.canWrite?"":"disabled"}></button>`).join("");
   let h=`<div class="card"><h3>チームカラー</h3><p class="muted">ボタン・見出しの帯・選択中の表示に使うメインの色です。</p><div class="chips">${sw(BRANDS,"brand",cb)}</div>${D.canWrite?`<label class="f">好きな色を選ぶ<input type="color" id="cbrand" value="${lum(cb)!==null?cb:"#16213A"}" style="height:44px;padding:4px"></label>`:""}</div>`;
   h+=`<div class="card"><h3>アクセントカラー</h3><p class="muted">声かけの強調やサーブの狙い所などに使う、差し色です。</p><div class="chips">${sw(ACCENTS,"accent",ca)}</div>${D.canWrite?`<label class="f">好きな色を選ぶ<input type="color" id="caccent" value="${lum(ca)!==null?ca:"#F2A900"}" style="height:44px;padding:4px"></label>`:""}</div>`;
-  h+=`<div class="card"><h3>見え方の確認</h3><div class="banner"><span class="muted">今月のテーマ</span><b>お見合いをなくす</b></div><div class="row"><button class="btn" type="button">ボタン</button><span class="chip" style="background:var(--brand);color:var(--brand-ink);border-color:var(--brand)">選択中</span><span class="cue">「打つ瞬間にトン」</span></div>${D.canWrite&&(cb||ca)?`<button class="btn warn" data-themereset="1">最初の色に戻す</button>`:""}</div>`;
+  h+=`<div class="card"><h3>見え方の確認</h3><div class="banner"><span class="muted">今日のテーマ</span><b>お見合いをなくす</b></div><div class="row"><button class="btn" type="button">ボタン</button><span class="chip" style="background:var(--brand);color:var(--brand-ink);border-color:var(--brand)">選択中</span><span class="cue">「打つ瞬間にトン」</span></div>${D.canWrite&&(cb||ca)?`<button class="btn warn" data-themereset="1">最初の色に戻す</button>`:""}</div>`;
   h=pre+h;
   h+=`<p class="note">${D.mode==="db"?"色や配置図の変更は、このアプリを共有しているメンバー全員の画面に反映されます。":"色や配置図の変更はこの端末に保存されます。メンバーにも反映するには、下の「データの受け渡し」で送ってください。"}</p>`;
   return h;
