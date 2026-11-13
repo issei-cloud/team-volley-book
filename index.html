@@ -646,8 +646,12 @@ function viewSkills(){
     if(c.rows.length) h += `<p class="muted">${esc(c.rowsLabel||"症状 → 原因 → 声かけ")}</p><div class="stack">${c.rows.map(r=>`<div class="sym-row"><b>${esc(r[0])}</b><span class="c">${esc(r[1])}</span><span><span class="cue">「${esc(r[2])}」</span></span></div>`).join("")}</div>`;
     return h;
   }
-  const q = S.q.trim();
-  let h = `<h2>技術カード</h2><input type="search" id="q" placeholder="症状で探す（例：ネット、アウト、遅れる）" value="${esc(q)}" aria-label="症状で探す">`;
+  let h = `<h2>技術カード</h2><input type="search" id="q" placeholder="症状で探す（例：ネット、アウト、遅れる）" value="${esc(S.q)}" aria-label="症状で探す" autocomplete="off" enterkeyhint="search">`;
+  return h + `<div id="qres">${skillResults()}</div>`;
+}
+// 検索結果（入力のたびに、この部分だけを書き換える）
+function skillResults(){
+  const q = S.q.trim(); let h="";
   if(q){
     const hits=[]; Object.entries(CARDS).forEach(([id,c])=>{ c.rows.forEach(r=>{ if(r.join(" ").includes(q)) hits.push([id,c,r[0],r[2]]); }); (c.tips||[]).forEach(t=>t.b.forEach(b=>{ if((t.h+b).includes(q)) hits.push([id,c,t.h,b]); })); });
     h += hits.length ? `<div class="stack">${hits.slice(0,30).map(([id,c,a,b])=>`<button class="sym-row" data-skill="${id}"><span class="muted">${esc(c.t)}</span><b>${esc(a)}</b><span class="c">${esc(b)}</span></button>`).join("")}</div>` : `<p class="muted">「${esc(q)}」に当てはまるものはまだありません。</p>`;
@@ -1214,7 +1218,11 @@ function render(){
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current", b.dataset.tab===S.tab?"page":"false"));
   const tn=((D.settings||{}).teamName||"").trim()||"チームバレー帳"; const h1=$("header.top h1"); if(h1&&h1.textContent!==tn) h1.textContent=tn; if(document.title!==tn) document.title=tn;
   const me=S.me&&player(S.me); $("#who").textContent = me ? `${me.num??""} ${me.name}` : (S.mine ? POS[S.mine].name : "");
-  const q=$("#q"); if(q) q.addEventListener("input",e=>{ S.q=e.target.value; const pos=e.target.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(pos,pos); });
+  // 検索欄：画面全体は描き直さず結果だけ更新する。日本語の変換中は確定するまで待つ
+  const q=$("#q"); if(q){ const upd=()=>{ S.q=q.value; const r=$("#qres"); if(r) r.innerHTML=skillResults(); };
+    q.addEventListener("input",e=>{ if(e.isComposing) return; upd(); });
+    q.addEventListener("compositionend",upd);
+    q.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); q.blur(); } }); }
   setupDrag(); setupBoard(); setupFormEdit(); setupTargetEdit();
   const p=$("#ppl"); if(p) p.addEventListener("change",e=>{ const n=Math.round(+e.target.value); S.ppl=Math.min(40,Math.max(1,isFinite(n)&&n>0?n:S.ppl)); render(); });
 }
